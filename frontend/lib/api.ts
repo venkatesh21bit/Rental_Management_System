@@ -154,10 +154,12 @@ export function handleApiError(error: ApiResponse<any>['error'], defaultMessage 
   
   switch (error.code) {
     case '401':
-      // Handle unauthorized - redirect to login
+      // Handle unauthorized - redirect to home page (which shows login)
       if (typeof window !== 'undefined') {
         localStorage.removeItem('authToken')
-        window.location.href = '/login'
+        localStorage.removeItem('refreshToken')
+        localStorage.removeItem('user')
+        window.location.href = '/'
       }
       return 'Please log in to continue'
     case '403':
