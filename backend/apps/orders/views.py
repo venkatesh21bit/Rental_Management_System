@@ -4,6 +4,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from django.db import transaction
+from django.db.models import Q
 from datetime import datetime, timedelta
 from .models import (
     RentalQuote, QuoteItem, RentalOrder, RentalItem,

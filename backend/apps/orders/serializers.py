@@ -4,8 +4,8 @@ from .models import (
     RentalQuote, QuoteItem, RentalOrder, RentalItem,
     Reservation, ReservationItem, RentalContract
 )
-# from apps.catalog.serializers import ProductSerializer  # TODO: Implement when catalog serializers are created
-# from apps.accounts.serializers import UserProfileSerializer  # TODO: Implement when accounts serializers are created
+from apps.catalog.serializers import ProductSerializer
+from apps.accounts.serializers import UserProfileSerializer
 
 User = get_user_model()
 
