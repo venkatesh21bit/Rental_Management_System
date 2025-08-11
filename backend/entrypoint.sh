@@ -39,14 +39,15 @@ python manage.py makemigrations
 echo "Running database migrations..."
 python manage.py migrate
 
-# Create superuser non-interactively (only if environment variables are set)
-if [ -n "$DJANGO_SUPERUSER_USERNAME" ] && [ -n "$DJANGO_SUPERUSER_EMAIL" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
-    echo "Creating superuser..."
-    python manage.py createsuperuser --noinput || echo "Superuser already exists or creation failed"
-else
-    echo "Creating default superusers via setup_db..."
-    python manage.py setup_db || echo "Default superuser creation failed - continuing anyway"
-fi
+# Create superuser using custom script
+echo "Creating superuser using create_superuser.py..."
+python -c "
+import django
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+exec(open('create_superuser.py').read())
+"
 
 # Collect static files
 echo "Collecting static files..."
