@@ -46,8 +46,8 @@ class DeliveryDocumentViewSet(viewsets.ModelViewSet):
             except ValueError:
                 pass
         
-        if delivery_type in [choice[0] for choice in DeliveryDocument.DeliveryType.choices]:
-            queryset = queryset.filter(delivery_type=delivery_type)
+        if delivery_type in [choice[0] for choice in DeliveryDocument.DocumentType.choices]:
+            queryset = queryset.filter(document_type=delivery_type)
         
         if status_filter in [choice[0] for choice in DeliveryDocument.Status.choices]:
             queryset = queryset.filter(status=status_filter)
@@ -109,25 +109,27 @@ class DeliveryDocumentViewSet(viewsets.ModelViewSet):
         data = serializer.validated_data
         
         try:
+            # Get the reservation from order_id
+            from apps.orders.models import RentalOrder
+            order = RentalOrder.objects.get(id=data['order_id'])
+            reservation = order.reservation
+            
             delivery = DeliveryDocument.objects.create(
-                order_id=data['order_id'],
-                delivery_type=data['delivery_type'],
+                reservation=reservation,
+                document_type=data['delivery_type'],
                 scheduled_datetime=data['scheduled_datetime'],
                 delivery_address=data['delivery_address'],
                 driver_id=data.get('driver_id'),
-                vehicle_info=data.get('vehicle_info', ''),
-                delivery_notes=data.get('notes', '')
+                vehicle=data.get('vehicle_info', ''),
+                notes=data.get('notes', '')
             )
             
-            # Create delivery items based on order items
-            from apps.orders.models import RentalOrder
-            order = RentalOrder.objects.get(id=data['order_id'])
-            
+            # Create delivery items based on order items  
             for order_item in order.items.all():
                 DeliveryItem.objects.create(
-                    delivery=delivery,
+                    delivery_document=delivery,
                     product=order_item.product,
-                    quantity_requested=order_item.quantity
+                    quantity_scheduled=order_item.quantity
                 )
             
             return Response({
@@ -177,21 +179,29 @@ class DeliveryDocumentViewSet(viewsets.ModelViewSet):
         
         delivery.status = data['status']
         if data.get('actual_delivery_datetime'):
-            delivery.actual_delivery_datetime = data['actual_delivery_datetime']
+            delivery.completed_at = data['actual_delivery_datetime']
         if data.get('gps_coordinates'):
-            delivery.gps_coordinates = data['gps_coordinates']
+            # Parse GPS coordinates to latitude/longitude
+            gps = data['gps_coordinates']
+            if 'latitude' in gps and 'longitude' in gps:
+                delivery.current_latitude = gps['latitude']
+                delivery.current_longitude = gps['longitude']
+                delivery.last_location_update = timezone.now()
         if data.get('delivery_notes'):
-            delivery.delivery_notes = data['delivery_notes']
+            delivery.notes = data['delivery_notes']
         if data.get('proof_of_delivery'):
-            delivery.proof_of_delivery = data['proof_of_delivery']
+            # Add to photos array
+            if data['proof_of_delivery'] not in delivery.photos:
+                delivery.photos.append(data['proof_of_delivery'])
         
         delivery.save()
         
         # Update order status if delivery is completed
-        if delivery.status == DeliveryDocument.Status.DELIVERED and delivery.delivery_type == DeliveryDocument.DeliveryType.PICKUP:
-            delivery.order.status = 'PICKED_UP'
-            delivery.order.actual_pickup_at = delivery.actual_delivery_datetime or timezone.now()
-            delivery.order.save()
+        if delivery.status == DeliveryDocument.Status.DELIVERED and delivery.document_type == DeliveryDocument.DocumentType.PICKUP:
+            order = delivery.reservation.order
+            order.status = 'PICKED_UP'
+            order.actual_pickup_at = delivery.completed_at or timezone.now()
+            order.save()
         
         return Response({
             'success': True,
@@ -223,8 +233,8 @@ class DeliveryDocumentViewSet(viewsets.ModelViewSet):
             serializer = self.get_serializer(deliveries, many=True)
             
             # Group by delivery type
-            pickups = [d for d in serializer.data if d['delivery_type'] == 'PICKUP']
-            returns = [d for d in serializer.data if d['delivery_type'] == 'RETURN']
+            pickups = [d for d in serializer.data if d['document_type'] == 'PICKUP']
+            returns = [d for d in serializer.data if d['document_type'] == 'RETURN']
             
             return Response({
                 'success': True,

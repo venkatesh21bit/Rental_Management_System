@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
-    Report, ReportTemplate, ReportSchedule, DashboardWidget,
-    ReportExecution, BusinessMetric
+    Report, ReportTemplate, ScheduledReport, DashboardWidget,
+    Analytics, ReportAccess
 )
 
 User = get_user_model()
@@ -43,7 +43,7 @@ class ReportScheduleSerializer(serializers.ModelSerializer):
     next_run_display = serializers.DateTimeField(source='next_run', read_only=True)
     
     class Meta:
-        model = ReportSchedule
+        model = ScheduledReport
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
     
@@ -70,17 +70,18 @@ class DashboardWidgetSerializer(serializers.ModelSerializer):
 
 
 class ReportExecutionSerializer(serializers.ModelSerializer):
+    # Using Report model as execution tracking
     template_name = serializers.CharField(source='template.name', read_only=True)
     execution_time_seconds = serializers.SerializerMethodField()
     
     class Meta:
-        model = ReportExecution
+        model = Report
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
     
     def get_execution_time_seconds(self, obj):
-        if obj.start_time and obj.end_time:
-            delta = obj.end_time - obj.start_time
+        if obj.created_at and obj.updated_at:
+            delta = obj.updated_at - obj.created_at
             return round(delta.total_seconds(), 2)
         return None
 
@@ -91,13 +92,13 @@ class BusinessMetricSerializer(serializers.ModelSerializer):
     variance_percentage = serializers.SerializerMethodField()
     
     class Meta:
-        model = BusinessMetric
+        model = Analytics
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
     
     def get_variance_percentage(self, obj):
-        if obj.current_value and obj.target_value and obj.target_value != 0:
-            variance = ((obj.current_value - obj.target_value) / obj.target_value) * 100
+        if hasattr(obj, 'value') and hasattr(obj, 'target_value') and obj.target_value and obj.target_value != 0:
+            variance = ((obj.value - obj.target_value) / obj.target_value) * 100
             return round(variance, 2)
         return None
 

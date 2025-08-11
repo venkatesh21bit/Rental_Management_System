@@ -9,8 +9,8 @@ from django.http import HttpResponse
 import json
 
 from .models import (
-    Report, ReportTemplate, ReportSchedule, DashboardWidget,
-    ReportExecution, BusinessMetric
+    Report, ReportTemplate, ScheduledReport, DashboardWidget,
+    Analytics, ReportAccess
 )
 from .serializers import (
     ReportSerializer, ReportTemplateSerializer, ReportScheduleSerializer,
@@ -82,10 +82,10 @@ class ReportViewSet(viewsets.ModelViewSet):
         
         try:
             # Create report execution record
-            execution = ReportExecution.objects.create(
+            execution = Report.objects.create(
                 template_id=data['template_id'],
                 status='RUNNING',
-                start_time=timezone.now(),
+                created_at=timezone.now(),
                 parameters=data.get('parameters', {})
             )
             
@@ -169,16 +169,16 @@ class ReportViewSet(viewsets.ModelViewSet):
             count=Count('id')
         ).order_by('-count').first()
         
-        # Average generation time
-        avg_time = ReportExecution.objects.filter(
+        # Average generation time (based on report creation time)
+        avg_time = Report.objects.filter(
             status='COMPLETED'
         ).aggregate(
-            avg_time=Avg('end_time') - Avg('start_time')
+            avg_time=Avg('updated_at') - Avg('created_at')
         )
         
         # Success rate
-        total_executions = ReportExecution.objects.count()
-        successful_executions = ReportExecution.objects.filter(status='COMPLETED').count()
+        total_executions = Report.objects.count()
+        successful_executions = Report.objects.filter(status='COMPLETED').count()
         success_rate = (successful_executions / total_executions * 100) if total_executions > 0 else 0
         
         # Total file size
@@ -204,13 +204,13 @@ class ReportViewSet(viewsets.ModelViewSet):
 
 
 class ReportScheduleViewSet(viewsets.ModelViewSet):
-    queryset = ReportSchedule.objects.all()
+    queryset = ScheduledReport.objects.all()
     serializer_class = ReportScheduleSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if not self.request.user.is_staff:
-            return ReportSchedule.objects.none()
+            return ScheduledReport.objects.none()
         
         return super().get_queryset().order_by('-created_at')
 
@@ -234,7 +234,9 @@ class DashboardWidgetViewSet(viewsets.ModelViewSet):
     def dashboard_data(self, request):
         """Get complete dashboard data"""
         widgets = DashboardWidget.objects.filter(is_active=True).order_by('position')
-        metrics = BusinessMetric.objects.filter(is_active=True)
+        metrics = Analytics.objects.filter(
+            metric_type='KPI'  # Assuming Analytics has a metric_type field
+        )[:10]  # Limit to recent metrics
         
         # Mock dashboard summary
         summary = {
@@ -260,19 +262,19 @@ class DashboardWidgetViewSet(viewsets.ModelViewSet):
 
 
 class ReportExecutionViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = ReportExecution.objects.all()
+    queryset = Report.objects.all()
     serializer_class = ReportExecutionSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if not self.request.user.is_staff:
-            return ReportExecution.objects.none()
+            return Report.objects.none()
         
-        return super().get_queryset().order_by('-start_time')
+        return super().get_queryset().order_by('-created_at')
 
 
 class BusinessMetricViewSet(viewsets.ModelViewSet):
-    queryset = BusinessMetric.objects.all()
+    queryset = Analytics.objects.all()
     serializer_class = BusinessMetricSerializer
     permission_classes = [IsAuthenticated]
     

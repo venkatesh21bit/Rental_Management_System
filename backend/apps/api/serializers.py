@@ -1,8 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from .models import (
-    APIKey, Integration, WebhookEndpoint, APILog,
-    RateLimitRule, ExternalSystem
+    APIKey, ExternalIntegration, WebhookEndpoint, APIRequest,
+    APIRateLimit, WebhookDelivery
 )
 
 User = get_user_model()
@@ -27,11 +27,10 @@ class APIKeySerializer(serializers.ModelSerializer):
 
 
 class IntegrationSerializer(serializers.ModelSerializer):
-    system_name = serializers.CharField(source='system.name', read_only=True)
     status_display = serializers.CharField(source='get_status_display', read_only=True)
     
     class Meta:
-        model = Integration
+        model = ExternalIntegration
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
     
@@ -66,12 +65,12 @@ class APILogSerializer(serializers.ModelSerializer):
     response_time_ms = serializers.SerializerMethodField()
     
     class Meta:
-        model = APILog
+        model = APIRequest
         fields = '__all__'
         read_only_fields = ('id', 'created_at')
     
     def get_response_time_ms(self, obj):
-        if obj.response_time:
+        if hasattr(obj, 'response_time') and obj.response_time:
             return round(obj.response_time * 1000, 2)
         return None
 
@@ -80,7 +79,7 @@ class RateLimitRuleSerializer(serializers.ModelSerializer):
     api_key_name = serializers.CharField(source='api_key.name', read_only=True)
     
     class Meta:
-        model = RateLimitRule
+        model = APIRateLimit
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
     
@@ -91,15 +90,15 @@ class RateLimitRuleSerializer(serializers.ModelSerializer):
 
 
 class ExternalSystemSerializer(serializers.ModelSerializer):
-    integration_count = serializers.SerializerMethodField()
+    delivery_count = serializers.SerializerMethodField()
     
     class Meta:
-        model = ExternalSystem
+        model = WebhookDelivery
         fields = '__all__'
         read_only_fields = ('id', 'created_at', 'updated_at')
     
-    def get_integration_count(self, obj):
-        return obj.integration_set.count()
+    def get_delivery_count(self, obj):
+        return WebhookDelivery.objects.filter(endpoint=obj.endpoint).count() if hasattr(obj, 'endpoint') else 0
 
 
 class APIKeyCreateSerializer(serializers.Serializer):
@@ -139,7 +138,7 @@ class IntegrationTestSerializer(serializers.Serializer):
     
     def validate_integration_id(self, value):
         try:
-            Integration.objects.get(id=value)
-        except Integration.DoesNotExist:
+            ExternalIntegration.objects.get(id=value)
+        except ExternalIntegration.DoesNotExist:
             raise serializers.ValidationError("Integration not found")
         return value

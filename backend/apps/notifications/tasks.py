@@ -9,9 +9,9 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 import logging
 
-from apps.orders.models import Order
+from apps.orders.models import RentalOrder
 from apps.payments.models import Payment
-from apps.deliveries.models import Delivery
+from apps.deliveries.models import DeliveryDocument
 from apps.notifications.models import NotificationTemplate, Notification, NotificationLog
 from utils.email_service import email_service
 
@@ -23,7 +23,7 @@ User = get_user_model()
 def send_order_confirmation_email(self, order_id):
     """Send order confirmation email to customer"""
     try:
-        order = Order.objects.select_related('customer').get(id=order_id)
+        order = RentalOrder.objects.select_related('customer').get(id=order_id)
         
         if not order.customer.email:
             logger.warning(f"No email found for customer {order.customer.id} in order {order_id}")
@@ -34,8 +34,8 @@ def send_order_confirmation_email(self, order_id):
             'order': {
                 'id': str(order.id),
                 'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
-                'start_date': order.start_date.strftime('%Y-%m-%d'),
-                'end_date': order.end_date.strftime('%Y-%m-%d'),
+                'start_date': order.rental_start.strftime('%Y-%m-%d'),
+                'end_date': order.rental_end.strftime('%Y-%m-%d'),
                 'total_amount': str(order.total_amount),
                 'status': order.status,
                 'items': [
@@ -45,7 +45,7 @@ def send_order_confirmation_email(self, order_id):
                         'rate': str(item.rate),
                         'subtotal': str(item.quantity * item.rate)
                     }
-                    for item in order.orderitem_set.all()
+                    for item in order.items.all()
                 ]
             },
             'user': {
@@ -84,7 +84,7 @@ def send_order_confirmation_email(self, order_id):
             
         return success
         
-    except Order.DoesNotExist:
+    except RentalOrder.DoesNotExist:
         logger.error(f"Order {order_id} not found")
         return False
     except Exception as e:
@@ -96,7 +96,7 @@ def send_order_confirmation_email(self, order_id):
 def send_pickup_reminder_email(self, order_id):
     """Send pickup reminder email to customer"""
     try:
-        order = Order.objects.select_related('customer').get(id=order_id)
+        order = RentalOrder.objects.select_related('customer').get(id=order_id)
         
         if not order.customer.email:
             return False
@@ -104,8 +104,8 @@ def send_pickup_reminder_email(self, order_id):
         context = {
             'order': {
                 'id': str(order.id),
-                'start_date': order.start_date.strftime('%Y-%m-%d'),
-                'end_date': order.end_date.strftime('%Y-%m-%d')
+                'start_date': order.rental_start.strftime('%Y-%m-%d'),
+                'end_date': order.rental_end.strftime('%Y-%m-%d')
             },
             'user': {
                 'first_name': order.customer.first_name or 'Valued Customer'
@@ -146,7 +146,7 @@ def send_pickup_reminder_email(self, order_id):
 def send_return_reminder_email(self, order_id):
     """Send return reminder email to customer"""
     try:
-        order = Order.objects.select_related('customer').get(id=order_id)
+        order = RentalOrder.objects.select_related('customer').get(id=order_id)
         
         if not order.customer.email:
             return False
@@ -154,7 +154,7 @@ def send_return_reminder_email(self, order_id):
         context = {
             'order': {
                 'id': str(order.id),
-                'end_date': order.end_date.strftime('%Y-%m-%d')
+                'end_date': order.rental_end.strftime('%Y-%m-%d')
             },
             'user': {
                 'first_name': order.customer.first_name or 'Valued Customer'
@@ -195,7 +195,7 @@ def send_return_reminder_email(self, order_id):
 def send_overdue_notice_email(self, order_id, days_overdue, late_fee=0):
     """Send overdue notice email to customer"""
     try:
-        order = Order.objects.select_related('customer').get(id=order_id)
+        order = RentalOrder.objects.select_related('customer').get(id=order_id)
         
         if not order.customer.email:
             return False
@@ -203,7 +203,7 @@ def send_overdue_notice_email(self, order_id, days_overdue, late_fee=0):
         context = {
             'order': {
                 'id': str(order.id),
-                'end_date': order.end_date.strftime('%Y-%m-%d')
+                'end_date': order.rental_end.strftime('%Y-%m-%d')
             },
             'user': {
                 'first_name': order.customer.first_name or 'Valued Customer'
@@ -248,36 +248,36 @@ def send_payment_confirmation_email(self, payment_id):
     try:
         payment = Payment.objects.select_related('order', 'order__customer').get(id=payment_id)
         
-        if not payment.order.customer.email:
+        if not payment.invoice.order.customer.user.email:
             return False
         
         context = {
             'payment': {
-                'transaction_id': payment.transaction_id,
+                'transaction_id': payment.gateway_payment_id,
                 'amount': str(payment.amount),
-                'method': payment.method,
+                'method': payment.get_payment_method_display(),
                 'created_at': payment.created_at.strftime('%Y-%m-%d %H:%M')
             },
             'order': {
-                'id': str(payment.order.id)
+                'id': str(payment.invoice.order.id)
             },
             'user': {
-                'first_name': payment.order.customer.first_name or 'Valued Customer'
+                'first_name': payment.invoice.order.customer.user.first_name or 'Valued Customer'
             }
         }
         
         success = email_service.send_notification_email(
-            to_email=payment.order.customer.email,
-            subject=f"Payment Confirmation - Transaction #{payment.transaction_id}",
+            to_email=payment.invoice.order.customer.user.email,
+            subject=f"Payment Confirmation - Transaction #{payment.gateway_payment_id}",
             template_name='payment_confirmation',
             context=context,
-            user=payment.order.customer,
+            user=payment.invoice.order.customer.user,
             notification_type='PAYMENT_CONFIRMATION'
         )
         
         # Log notification
         NotificationLog.objects.create(
-            user=payment.order.customer,
+            user=payment.invoice.order.customer.user,
             channel='EMAIL',
             status='SENT' if success else 'FAILED',
             metadata={
@@ -299,7 +299,7 @@ def send_payment_confirmation_email(self, payment_id):
 def send_payment_reminder_email(self, order_id, amount_due):
     """Send payment reminder email to customer"""
     try:
-        order = Order.objects.select_related('customer').get(id=order_id)
+        order = RentalOrder.objects.select_related('customer').get(id=order_id)
         
         if not order.customer.email:
             return False
@@ -348,40 +348,40 @@ def send_payment_reminder_email(self, order_id, amount_due):
 def send_delivery_update_email(self, delivery_id, status_update, message):
     """Send delivery update email to customer"""
     try:
-        delivery = Delivery.objects.select_related('order', 'order__customer').get(id=delivery_id)
+        delivery = DeliveryDocument.objects.select_related('reservation', 'reservation__order', 'reservation__order__customer').get(id=delivery_id)
         
-        if not delivery.order.customer.email:
+        if not delivery.reservation.order.customer.email:
             return False
         
         context = {
             'order': {
-                'id': str(delivery.order.id)
+                'id': str(delivery.reservation.order.id)
             },
             'user': {
-                'first_name': delivery.order.customer.first_name or 'Valued Customer'
+                'first_name': delivery.reservation.order.customer.first_name or 'Valued Customer'
             },
             'delivery_status': status_update,
             'delivery_message': message,
-            'expected_delivery': delivery.expected_delivery_date.strftime('%Y-%m-%d') if delivery.expected_delivery_date else 'As scheduled'
+            'expected_delivery': delivery.scheduled_datetime.strftime('%Y-%m-%d') if delivery.scheduled_datetime else 'As scheduled'
         }
         
         success = email_service.send_notification_email(
-            to_email=delivery.order.customer.email,
-            subject=f"Delivery Update - Order #{delivery.order.id}",
+            to_email=delivery.reservation.order.customer.email,
+            subject=f"Delivery Update - Order #{delivery.reservation.order.id}",
             template_name='delivery_update',
             context=context,
-            user=delivery.order.customer,
+            user=delivery.reservation.order.customer,
             notification_type='DELIVERY_UPDATE'
         )
         
         # Log notification
         NotificationLog.objects.create(
-            user=delivery.order.customer,
+            user=delivery.reservation.order.customer,
             channel='EMAIL',
             status='SENT' if success else 'FAILED',
             metadata={
                 'delivery_id': delivery_id,
-                'order_id': delivery.order.id,
+                'order_id': delivery.reservation.order.id,
                 'template': 'delivery_update',
                 'status_update': status_update,
                 'task_id': str(self.request.id)
@@ -443,9 +443,9 @@ def check_upcoming_pickups():
     """Check for orders with upcoming pickup dates and send reminders"""
     tomorrow = timezone.now().date() + timedelta(days=1)
     
-    upcoming_orders = Order.objects.filter(
-        start_date=tomorrow,
-        status__in=['CONFIRMED', 'PAID']
+    upcoming_orders = RentalOrder.objects.filter(
+        rental_start__date=tomorrow,
+        status__in=['CONFIRMED', 'RESERVED']
     ).select_related('customer')
     
     sent_count = 0
@@ -470,8 +470,8 @@ def check_upcoming_returns():
     """Check for orders with upcoming return dates and send reminders"""
     tomorrow = timezone.now().date() + timedelta(days=1)
     
-    upcoming_returns = Order.objects.filter(
-        end_date=tomorrow,
+    upcoming_returns = RentalOrder.objects.filter(
+        rental_end__date=tomorrow,
         status__in=['ACTIVE', 'PICKED_UP']
     ).select_related('customer')
     
@@ -497,14 +497,14 @@ def check_overdue_returns():
     """Check for overdue returns and send overdue notices"""
     today = timezone.now().date()
     
-    overdue_orders = Order.objects.filter(
-        end_date__lt=today,
+    overdue_orders = RentalOrder.objects.filter(
+        rental_end__date__lt=today,
         status__in=['ACTIVE', 'PICKED_UP']
     ).select_related('customer')
     
     sent_count = 0
     for order in overdue_orders:
-        days_overdue = (today - order.end_date).days
+        days_overdue = (today - order.rental_end.date()).days
         
         # Send overdue notice every 3 days
         if days_overdue % 3 == 0:

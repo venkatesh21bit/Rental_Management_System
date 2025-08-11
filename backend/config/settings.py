@@ -258,15 +258,15 @@ EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='rentalmanagement2024@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Rental Management System <rentalmanagement2024@gmail.com>')
-DEFAULT_REPLY_TO_EMAIL = config('DEFAULT_REPLY_TO_EMAIL', default='rentalmanagement2024@gmail.com')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='venkatesh.k21062005@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='ywqc fghh kgdv kaqe')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Rental Management System <venkatesh.k21062005@gmail.com>')
+DEFAULT_REPLY_TO_EMAIL = config('DEFAULT_REPLY_TO_EMAIL', default='venkatesh.k21062005@gmail.com')
 
 # Company information for emails
 COMPANY_NAME = config('COMPANY_NAME', default='Rental Management System')
-COMPANY_PHONE = config('COMPANY_PHONE', default='+91-9876543210')
-COMPANY_ADDRESS = config('COMPANY_ADDRESS', default='Delhi, India')
+COMPANY_PHONE = config('COMPANY_PHONE', default='+91-9025447567')
+COMPANY_ADDRESS = config('COMPANY_ADDRESS', default='Gujarat, India')
 WEBSITE_URL = config('WEBSITE_URL', default='https://rentalmanagement.com')
 
 # Email validation and fallback
