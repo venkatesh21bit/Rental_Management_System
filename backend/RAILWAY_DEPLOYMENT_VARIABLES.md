@@ -29,6 +29,14 @@ DEFAULT_FROM_EMAIL=Rental Management System <rentalmanagement2024@gmail.com>
 DEFAULT_REPLY_TO_EMAIL=rentalmanagement2024@gmail.com
 ```
 
+### Superuser Configuration (Optional - for automatic admin creation)
+```
+DJANGO_SUPERUSER_USERNAME=admin
+DJANGO_SUPERUSER_EMAIL=admin@yourcompany.com
+DJANGO_SUPERUSER_PASSWORD=your-secure-admin-password
+```
+*Note: If these are not set, you'll need to create superuser manually later*
+
 ### Company Information
 ```
 COMPANY_NAME=Rental Management System
