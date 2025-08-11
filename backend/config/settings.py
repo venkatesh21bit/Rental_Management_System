@@ -28,7 +28,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-&zt-tj-)*zxk!7a*656xk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,rentalmanagementsystem-production.up.railway.app').split(',')
+# ALLOWED_HOSTS configuration - always include Railway URL
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# Always ensure Railway URL is included
+if 'rentalmanagementsystem-production.up.railway.app' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('rentalmanagementsystem-production.up.railway.app')
 
 
 # Application definition
