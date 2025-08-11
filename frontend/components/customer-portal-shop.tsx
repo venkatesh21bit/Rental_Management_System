@@ -192,7 +192,12 @@ const rentalProducts = [
   }
 ]
 
-export function CustomerPortalShop() {
+interface CustomerPortalShopProps {
+  sharedWishlist?: any[]
+  onWishlistChange?: (wishlist: any[]) => void
+}
+
+export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: CustomerPortalShopProps = {}) {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [selectedBrands, setSelectedBrands] = useState<string[]>([])
@@ -210,7 +215,15 @@ export function CustomerPortalShop() {
   
   // Cart and wishlist states
   const [cart, setCart] = useState<any[]>([])
-  const [wishlist, setWishlist] = useState<any[]>([])
+  const [wishlist, setWishlist] = useState<any[]>(sharedWishlist)
+
+  // Sync wishlist changes with parent component
+  const updateWishlist = (newWishlist: any[]) => {
+    setWishlist(newWishlist)
+    if (onWishlistChange) {
+      onWishlistChange(newWishlist)
+    }
+  }
 
   // Extract unique values for filters
   const categories = Array.from(new Set(rentalProducts.map(p => p.category)))
@@ -273,6 +286,11 @@ export function CustomerPortalShop() {
   }
 
   const addToCart = (product: any, quantity = 1, startDate?: Date, endDate?: Date) => {
+    // Check if product is already in cart
+    if (isProductInCart(product.id)) {
+      return; // Prevent adding duplicate
+    }
+    
     const newItem = {
       id: product.id + '_' + Date.now(), // Unique cart item ID
       productId: product.id,
@@ -286,9 +304,33 @@ export function CustomerPortalShop() {
     setCart([...cart, newItem])
   }
 
+  // Check if a product is already in cart
+  const isProductInCart = (productId: string) => {
+    return cart.some(item => item.productId === productId)
+  }
+
+  // Check if a product is already in wishlist
+  const isProductInWishlist = (productId: string) => {
+    return wishlist.some(item => item.id === productId)
+  }
+
   const addToWishlist = (product: any) => {
     if (!wishlist.find(item => item.id === product.id)) {
-      setWishlist([...wishlist, product])
+      const newWishlist = [...wishlist, product]
+      updateWishlist(newWishlist)
+    }
+  }
+
+  const removeFromWishlist = (productId: string) => {
+    const newWishlist = wishlist.filter(item => item.id !== productId)
+    updateWishlist(newWishlist)
+  }
+
+  const toggleWishlist = (product: any) => {
+    if (isProductInWishlist(product.id)) {
+      removeFromWishlist(product.id)
+    } else {
+      addToWishlist(product)
     }
   }
 
@@ -361,7 +403,7 @@ export function CustomerPortalShop() {
         product={selectedProduct}
         onAddToCart={addToCart}
         onBack={handleBackToShop}
-        onAddToWishlist={addToWishlist}
+        onAddToWishlist={toggleWishlist}
       />
     )
   }
@@ -627,10 +669,11 @@ export function CustomerPortalShop() {
                       <Package className="h-16 w-16 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                       <Button 
                         size="sm" 
-                        variant="outline" 
+                        variant={isProductInWishlist(product.id) ? "default" : "outline"}
                         className="absolute top-2 right-2"
+                        onClick={() => toggleWishlist(product)}
                       >
-                        <Heart className="h-4 w-4" />
+                        <Heart className={`h-4 w-4 ${isProductInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
                       </Button>
                     </div>
                     <CardContent className="p-4">
@@ -658,9 +701,24 @@ export function CustomerPortalShop() {
                           <Eye className="h-3 w-3 mr-1" />
                           View Details
                         </Button>
-                        <Button size="sm" className="w-full" onClick={() => addToCart(product)}>
-                          <Plus className="h-3 w-3 mr-1" />
-                          Add to Cart
+                        <Button 
+                          size="sm" 
+                          className="w-full" 
+                          onClick={() => addToCart(product)}
+                          variant={isProductInCart(product.id) ? "secondary" : "default"}
+                          disabled={isProductInCart(product.id)}
+                        >
+                          {isProductInCart(product.id) ? (
+                            <>
+                              <CheckCircle className="h-3 w-3 mr-1" />
+                              Added to Cart
+                            </>
+                          ) : (
+                            <>
+                              <Plus className="h-3 w-3 mr-1" />
+                              Add to Cart
+                            </>
+                          )}
                         </Button>
                       </div>
                     </CardContent>
@@ -720,11 +778,16 @@ export function CustomerPortalShop() {
                           </TableCell>
                           <TableCell>
                             <div className="flex gap-2">
-                              <Button size="sm" variant="outline">
+                              <Button size="sm" variant="outline" onClick={() => handleProductClick(product)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                              <Button size="sm" onClick={() => addToCart(product)}>
-                                <Plus className="h-4 w-4" />
+                              <Button 
+                                size="sm" 
+                                onClick={() => addToCart(product)}
+                                variant={isProductInCart(product.id) ? "secondary" : "default"}
+                                disabled={isProductInCart(product.id)}
+                              >
+                                {isProductInCart(product.id) ? <CheckCircle className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
                               </Button>
                             </div>
                           </TableCell>

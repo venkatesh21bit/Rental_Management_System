@@ -48,7 +48,7 @@ import {
 } from "lucide-react"
 import { format, addDays } from "date-fns"
 
-// End User Portal Data - Administrative Interface
+// End User Portal Data - End User Interface
 const endUserData = {
   stats: {
     totalCustomers: 1245,
@@ -211,20 +211,20 @@ export function EndUserPortal() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
       <div className="bg-white border-b shadow-sm">
-        <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+        <div className="container mx-auto px-4 py-6 overflow-x-hidden">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">End User Portal</h1>
-              <p className="text-gray-600">Administrative Dashboard & Management</p>
+              <p className="text-gray-600">End User Dashboard & Management</p>
             </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center space-y-2 sm:space-y-0 sm:space-x-4">
               <Badge variant="default">
                 {endUserData.stats.activeRentals} Active Rentals
               </Badge>
-              <div className="text-right">
+              <div className="text-left sm:text-right">
                 <div className="text-sm text-gray-500">Monthly Revenue</div>
                 <div className="font-semibold">${endUserData.stats.totalRevenue.toLocaleString()}</div>
               </div>
@@ -233,13 +233,13 @@ export function EndUserPortal() {
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex gap-8">
+      <div className="container mx-auto px-4 py-8 overflow-x-hidden">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar Navigation */}
-          <div className="w-64 flex-shrink-0">
+          <div className="w-full lg:w-64 flex-shrink-0">
             <Card>
               <CardHeader>
-                <CardTitle className="text-lg">Admin Menu</CardTitle>
+                <CardTitle className="text-lg">End User Menu</CardTitle>
               </CardHeader>
               <CardContent className="p-0">
                 <nav className="space-y-1">
@@ -266,7 +266,7 @@ export function EndUserPortal() {
           </div>
 
           {/* Main Content Area */}
-          <div className="flex-1">
+          <div className="flex-1 min-w-0 overflow-x-hidden">
             {/* Dashboard Section */}
             {activeSection === "dashboard" && (
               <div className="space-y-6">
@@ -378,19 +378,20 @@ export function EndUserPortal() {
                   <CardDescription>Manage all rental orders and their status</CardDescription>
                 </CardHeader>
                 <CardContent>
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Order ID</TableHead>
-                        <TableHead>Customer</TableHead>
-                        <TableHead>Product</TableHead>
-                        <TableHead>Date Range</TableHead>
-                        <TableHead>Amount</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Priority</TableHead>
-                        <TableHead>Actions</TableHead>
-                      </TableRow>
-                    </TableHeader>
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead className="min-w-[100px]">Order ID</TableHead>
+                          <TableHead className="min-w-[120px]">Customer</TableHead>
+                          <TableHead className="min-w-[150px]">Product</TableHead>
+                          <TableHead className="min-w-[120px]">Date Range</TableHead>
+                          <TableHead className="min-w-[100px]">Amount</TableHead>
+                          <TableHead className="min-w-[100px]">Status</TableHead>
+                          <TableHead className="min-w-[100px]">Priority</TableHead>
+                          <TableHead className="min-w-[120px]">Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
                     <TableBody>
                       {endUserData.recentOrders.map((order) => (
                         <TableRow key={order.id}>
@@ -421,6 +422,7 @@ export function EndUserPortal() {
                       ))}
                     </TableBody>
                   </Table>
+                  </div>
                 </CardContent>
               </Card>
             )}

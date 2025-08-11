@@ -105,6 +105,70 @@ export function OrderManagement() {
   const [statusFilter, setStatusFilter] = useState("all")
   const [showCreateOrder, setShowCreateOrder] = useState(false)
   const [selectedOrder, setSelectedOrder] = useState<any>(null)
+  const [orderList, setOrderList] = useState(orders)
+  const [currentPage, setCurrentPage] = useState<"main" | "create-quotation" | "view" | "edit">("main")
+  
+  // Form state for creating orders
+  const [newOrder, setNewOrder] = useState({
+    customerName: "",
+    email: "",
+    phone: "",
+    products: [] as any[],
+    startDate: null as Date | null,
+    endDate: null as Date | null,
+    paymentTerms: ""
+  })
+
+
+  const handleCreateOrder = () => {
+    if (newOrder.customerName && newOrder.email && newOrder.products.length > 0) {
+      const order = {
+        id: `RO-${String(orderList.length + 1).padStart(3, '0')}`,
+        customer: newOrder.customerName,
+        email: newOrder.email,
+        phone: newOrder.phone,
+        products: newOrder.products,
+        startDate: newOrder.startDate?.toISOString().split('T')[0] || "",
+        endDate: newOrder.endDate?.toISOString().split('T')[0] || "",
+        status: "confirmed",
+        totalAmount: newOrder.products.reduce((sum, p) => sum + (p.price * p.quantity), 0),
+        paidAmount: 0,
+        paymentStatus: "pending",
+        deliveryStatus: "pending",
+        createdAt: new Date().toISOString().split('T')[0]
+      }
+      setOrderList([...orderList, order])
+      setNewOrder({
+        customerName: "",
+        email: "",
+        phone: "",
+        products: [],
+        startDate: null,
+        endDate: null,
+        paymentTerms: ""
+      })
+      setShowCreateOrder(false)
+    }
+  }
+
+  const handleCreateQuotation = () => {
+    setCurrentPage("create-quotation")
+  }
+
+  const handleViewOrder = (order: any) => {
+    setSelectedOrder(order)
+    setCurrentPage("view")
+  }
+
+  const handleEditOrder = (order: any) => {
+    setSelectedOrder(order)
+    setCurrentPage("edit")
+  }
+
+  const handleBackToMain = () => {
+    setCurrentPage("main")
+    setSelectedOrder(null)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -236,7 +300,7 @@ export function OrderManagement() {
                 <Button variant="outline" onClick={() => setShowCreateOrder(false)}>
                   Cancel
                 </Button>
-                <Button onClick={() => setShowCreateOrder(false)}>Create Order</Button>
+                <Button onClick={handleCreateOrder}>Create Order</Button>
               </div>
             </DialogContent>
           </Dialog>

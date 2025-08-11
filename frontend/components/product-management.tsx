@@ -84,13 +84,19 @@ export function ProductManagement() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [showAddProduct, setShowAddProduct] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date>()
-
-  const filteredProducts = products.filter((product) => {
-    const matchesSearch =
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.category.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || product.category.toLowerCase() === selectedCategory
-    return matchesSearch && matchesCategory
+  const [currentPage, setCurrentPage] = useState<"main" | "view" | "edit">("main")
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [productList, setProductList] = useState(products)
+  
+  // Form state for adding products
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category: "",
+    description: "",
+    units: "per day",
+    pricePerUnit: "",
+    totalStock: "",
+    isRentable: true
   })
 
   const getStatusColor = (status: string) => {
@@ -105,6 +111,215 @@ export function ProductManagement() {
         return "outline"
     }
   }
+
+  const handleAddProduct = () => {
+    if (newProduct.name && newProduct.category && newProduct.pricePerUnit && newProduct.totalStock) {
+      const product = {
+        id: `P${String(productList.length + 1).padStart(3, '0')}`,
+        name: newProduct.name,
+        category: newProduct.category,
+        description: newProduct.description,
+        isRentable: newProduct.isRentable,
+        units: newProduct.units,
+        pricePerUnit: parseFloat(newProduct.pricePerUnit),
+        totalStock: parseInt(newProduct.totalStock),
+        availableStock: parseInt(newProduct.totalStock),
+        status: "available",
+        image: "/placeholder.svg?height=100&width=100&text=Product"
+      }
+      setProductList([...productList, product])
+      setNewProduct({
+        name: "",
+        category: "",
+        description: "",
+        units: "per day",
+        pricePerUnit: "",
+        totalStock: "",
+        isRentable: true
+      })
+      setShowAddProduct(false)
+    }
+  }
+
+  const handleViewProduct = (product: any) => {
+    setSelectedProduct(product)
+    setCurrentPage("view")
+  }
+
+  const handleEditProduct = (product: any) => {
+    setSelectedProduct(product)
+    setCurrentPage("edit")
+  }
+
+  const handleBackToMain = () => {
+    setCurrentPage("main")
+    setSelectedProduct(null)
+  }
+
+  // Product View Page Component
+  const ProductViewPage = () => (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <Button variant="ghost" onClick={handleBackToMain}>
+          ← Back to Products
+        </Button>
+        <Button onClick={() => setCurrentPage("edit")}>
+          <Edit className="h-4 w-4 mr-2" />
+          Edit Product
+        </Button>
+      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>{selectedProduct?.name}</CardTitle>
+          <CardDescription>Product Details</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Product ID</Label>
+              <p className="text-sm text-gray-600">{selectedProduct?.id}</p>
+            </div>
+            <div>
+              <Label>Category</Label>
+              <p className="text-sm text-gray-600">{selectedProduct?.category}</p>
+            </div>
+            <div>
+              <Label>Price per Unit</Label>
+              <p className="text-sm text-gray-600">${selectedProduct?.pricePerUnit} {selectedProduct?.units}</p>
+            </div>
+            <div>
+              <Label>Stock Status</Label>
+              <p className="text-sm text-gray-600">{selectedProduct?.availableStock}/{selectedProduct?.totalStock} available</p>
+            </div>
+            <div className="col-span-2">
+              <Label>Description</Label>
+              <p className="text-sm text-gray-600">{selectedProduct?.description}</p>
+            </div>
+            <div>
+              <Label>Rental Status</Label>
+              <Badge variant={selectedProduct?.isRentable ? "default" : "secondary"}>
+                {selectedProduct?.isRentable ? "Available for Rent" : "Not Rentable"}
+              </Badge>
+            </div>
+            <div>
+              <Label>Current Status</Label>
+              <Badge variant={getStatusColor(selectedProduct?.status)}>
+                {selectedProduct?.status?.replace("-", " ")}
+              </Badge>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
+  )
+
+  // Product Edit Page Component
+  const ProductEditPage = () => {
+    const [editProduct, setEditProduct] = useState(selectedProduct || {})
+
+    const handleSaveProduct = () => {
+      const updatedProducts = productList.map(p => 
+        p.id === editProduct.id ? editProduct : p
+      )
+      setProductList(updatedProducts)
+      setCurrentPage("view")
+    }
+
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <Button variant="ghost" onClick={() => setCurrentPage("view")}>
+            ← Back to View
+          </Button>
+          <Button onClick={handleSaveProduct}>
+            Save Changes
+          </Button>
+        </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Edit Product</CardTitle>
+            <CardDescription>Update product information</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="edit-name">Product Name</Label>
+                <Input 
+                  id="edit-name" 
+                  value={editProduct.name || ""}
+                  onChange={(e) => setEditProduct({...editProduct, name: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-category">Category</Label>
+                <Select value={editProduct.category || ""} onValueChange={(value) => setEditProduct({...editProduct, category: value})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Photography">Photography</SelectItem>
+                    <SelectItem value="Audio">Audio</SelectItem>
+                    <SelectItem value="Lighting">Lighting</SelectItem>
+                    <SelectItem value="Technology">Technology</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="col-span-2 space-y-2">
+                <Label htmlFor="edit-description">Description</Label>
+                <Textarea 
+                  id="edit-description" 
+                  value={editProduct.description || ""}
+                  onChange={(e) => setEditProduct({...editProduct, description: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-price">Price per Unit ($)</Label>
+                <Input 
+                  id="edit-price" 
+                  type="number" 
+                  value={editProduct.pricePerUnit || ""}
+                  onChange={(e) => setEditProduct({...editProduct, pricePerUnit: parseFloat(e.target.value)})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="edit-stock">Total Stock</Label>
+                <Input 
+                  id="edit-stock" 
+                  type="number" 
+                  value={editProduct.totalStock || ""}
+                  onChange={(e) => setEditProduct({...editProduct, totalStock: parseInt(e.target.value)})}
+                />
+              </div>
+              <div className="flex items-center space-x-2">
+                <Switch 
+                  checked={editProduct.isRentable || false}
+                  onCheckedChange={(checked) => setEditProduct({...editProduct, isRentable: checked})}
+                />
+                <Label>Available for Rental</Label>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
+  // Conditional rendering based on current page
+  if (currentPage === "view") {
+    return <ProductViewPage />
+  }
+
+  if (currentPage === "edit") {
+    return <ProductEditPage />
+  }
+
+  const filteredProducts = productList.filter((product) => {
+    const matchesSearch =
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.category.toLowerCase().includes(searchTerm.toLowerCase())
+    const matchesCategory = selectedCategory === "all" || product.category.toLowerCase() === selectedCategory
+    return matchesSearch && matchesCategory
+  })
 
   return (
     <div className="space-y-6">
@@ -128,50 +343,76 @@ export function ProductManagement() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="product-name">Product Name</Label>
-                <Input id="product-name" placeholder="Enter product name" />
+                <Input 
+                  id="product-name" 
+                  placeholder="Enter product name" 
+                  value={newProduct.name}
+                  onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="category">Category</Label>
-                <Select>
+                <Select value={newProduct.category} onValueChange={(value) => setNewProduct({...newProduct, category: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="photography">Photography</SelectItem>
-                    <SelectItem value="audio">Audio</SelectItem>
-                    <SelectItem value="lighting">Lighting</SelectItem>
-                    <SelectItem value="technology">Technology</SelectItem>
+                    <SelectItem value="Photography">Photography</SelectItem>
+                    <SelectItem value="Audio">Audio</SelectItem>
+                    <SelectItem value="Lighting">Lighting</SelectItem>
+                    <SelectItem value="Technology">Technology</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="col-span-2 space-y-2">
                 <Label htmlFor="description">Description</Label>
-                <Textarea id="description" placeholder="Product description" />
+                <Textarea 
+                  id="description" 
+                  placeholder="Product description" 
+                  value={newProduct.description}
+                  onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="rental-unit">Rental Unit</Label>
-                <Select>
+                <Select value={newProduct.units} onValueChange={(value) => setNewProduct({...newProduct, units: value})}>
                   <SelectTrigger>
                     <SelectValue placeholder="Select unit" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="per-hour">Per Hour</SelectItem>
-                    <SelectItem value="per-day">Per Day</SelectItem>
-                    <SelectItem value="per-week">Per Week</SelectItem>
-                    <SelectItem value="per-month">Per Month</SelectItem>
+                    <SelectItem value="per hour">Per Hour</SelectItem>
+                    <SelectItem value="per day">Per Day</SelectItem>
+                    <SelectItem value="per week">Per Week</SelectItem>
+                    <SelectItem value="per month">Per Month</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
                 <Label htmlFor="price">Price per Unit ($)</Label>
-                <Input id="price" type="number" placeholder="0.00" />
+                <Input 
+                  id="price" 
+                  type="number" 
+                  placeholder="0.00" 
+                  value={newProduct.pricePerUnit}
+                  onChange={(e) => setNewProduct({...newProduct, pricePerUnit: e.target.value})}
+                />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="stock">Total Stock</Label>
-                <Input id="stock" type="number" placeholder="0" />
+                <Input 
+                  id="stock" 
+                  type="number" 
+                  placeholder="0" 
+                  value={newProduct.totalStock}
+                  onChange={(e) => setNewProduct({...newProduct, totalStock: e.target.value})}
+                />
               </div>
               <div className="flex items-center space-x-2">
-                <Switch id="rentable" />
+                <Switch 
+                  id="rentable" 
+                  checked={newProduct.isRentable}
+                  onCheckedChange={(checked) => setNewProduct({...newProduct, isRentable: checked})}
+                />
                 <Label htmlFor="rentable">Available for Rental</Label>
               </div>
             </div>
@@ -179,7 +420,7 @@ export function ProductManagement() {
               <Button variant="outline" onClick={() => setShowAddProduct(false)}>
                 Cancel
               </Button>
-              <Button onClick={() => setShowAddProduct(false)}>Add Product</Button>
+              <Button onClick={handleAddProduct}>Add Product</Button>
             </div>
           </DialogContent>
         </Dialog>
@@ -263,11 +504,11 @@ export function ProductManagement() {
                 </div>
               </div>
               <div className="flex gap-2 mt-4">
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={() => handleViewProduct(product)}>
                   <Eye className="h-4 w-4 mr-1" />
                   View
                 </Button>
-                <Button variant="outline" size="sm" className="flex-1 bg-transparent">
+                <Button variant="outline" size="sm" className="flex-1 bg-transparent" onClick={() => handleEditProduct(product)}>
                   <Edit className="h-4 w-4 mr-1" />
                   Edit
                 </Button>
@@ -313,10 +554,10 @@ export function ProductManagement() {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleViewProduct(product)}>
                         <Eye className="h-4 w-4" />
                       </Button>
-                      <Button variant="ghost" size="sm">
+                      <Button variant="ghost" size="sm" onClick={() => handleEditProduct(product)}>
                         <Edit className="h-4 w-4" />
                       </Button>
                     </div>

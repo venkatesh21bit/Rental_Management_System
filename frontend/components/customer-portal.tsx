@@ -46,17 +46,17 @@ import { format, addDays } from "date-fns"
 
 // Customer Portal Data - Based on Architecture
 const customerData = {
-  profile: {
-    id: "CUST-001",
-    name: "John Smith",
-    email: "john.smith@email.com",
-    phone: "+1 (555) 123-4567",
-    address: "123 Main Street, New York, NY 10001",
-    memberSince: "2023-01-15",
-    totalOrders: 12,
-    totalSpent: 4560.00,
-    status: "Premium"
-  },
+    profile: {
+      id: "CUST-001",
+      name: "John Smith",
+      email: "john.smith@email.com",
+      phone: "+1 (555) 123-4567",
+      address: "123 Main Street, New York, NY 10001",
+      memberSince: "2023-01-15",
+      totalOrders: 12,
+      totalSpent: 4560.00,
+      status: "Premium"
+    },
   currentRentals: [
     {
       id: "RO-2024-001",
@@ -145,9 +145,86 @@ const customerData = {
 
 export function CustomerPortal() {
   const [activeSection, setActiveSection] = useState("dashboard")
+  
+  // Profile form state
+  const [profileForm, setProfileForm] = useState({
+    name: customerData.profile.name,
+    email: customerData.profile.email,
+    phone: customerData.profile.phone,
+    address: customerData.profile.address
+  })
+
+  // Shop states
+  const [searchTerm, setSearchTerm] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [cart, setCart] = useState<any[]>([])
+  const [showBookingDialog, setShowBookingDialog] = useState(false)
+  const [startDate, setStartDate] = useState<Date>()
+  const [endDate, setEndDate] = useState<Date>()
+
+  // Add states for dialogs and actions
+  const [showOrderDetails, setShowOrderDetails] = useState<any>(null)
+  const [showExtendRental, setShowExtendRental] = useState<any>(null)
+  const [showPasswordChange, setShowPasswordChange] = useState(false)
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+
+  // Action handlers
+  const handleViewOrderDetails = (order: any) => {
+    setShowOrderDetails(order)
+  }
+
+  const handleExtendRental = (rental: any) => {
+    setShowExtendRental(rental)
+  }
+
+  const handleContactSupport = (rental: any) => {
+    alert(`Contacting support for ${rental.product} (${rental.id}). You will be redirected to our support team.`)
+  }
+
+  const handleDownloadInvoice = (invoice: any) => {
+    // Simulate download
+    alert(`Downloading invoice ${invoice.id}. In a real app, this would trigger a file download.`)
+  }
+
+  const handleUpdateProfile = () => {
+    alert("Profile updated successfully!")
+    // In a real app, you would save to backend
+  }
+
+  const handleChangePassword = () => {
+    if (newPassword !== confirmPassword) {
+      alert("Passwords don't match!")
+      return
+    }
+    if (newPassword.length < 6) {
+      alert("Password must be at least 6 characters!")
+      return
+    }
+    alert("Password changed successfully!")
+    setShowPasswordChange(false)
+    setNewPassword("")
+    setConfirmPassword("")
+  }
+
+  const handleQuickAction = (action: string) => {
+    switch (action) {
+      case "browse":
+        setActiveSection("shop")
+        break
+      case "orders":
+        setActiveSection("order-history")
+        break
+      case "profile":
+        setActiveSection("profile")
+        break
+    }
+  }
 
   const sectionItems = [
     { id: "dashboard", label: "Dashboard", icon: User },
+    { id: "shop", label: "Browse Products", icon: Package },
     { id: "current-rentals", label: "Current Rentals", icon: Package },
     { id: "order-history", label: "Order History", icon: FileText },
     { id: "notifications", label: "Notifications", icon: AlertCircle },
@@ -260,15 +337,26 @@ export function CustomerPortal() {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <Button className="h-16">
+                      <Button 
+                        className="h-16"
+                        onClick={() => handleQuickAction("browse")}
+                      >
                         <Package className="h-6 w-6 mr-2" />
                         Browse Products
                       </Button>
-                      <Button variant="outline" className="h-16">
+                      <Button 
+                        variant="outline" 
+                        className="h-16"
+                        onClick={() => handleQuickAction("orders")}
+                      >
                         <FileText className="h-6 w-6 mr-2" />
                         View Orders
                       </Button>
-                      <Button variant="outline" className="h-16">
+                      <Button 
+                        variant="outline" 
+                        className="h-16"
+                        onClick={() => handleQuickAction("profile")}
+                      >
                         <User className="h-6 w-6 mr-2" />
                         Update Profile
                       </Button>
@@ -295,6 +383,69 @@ export function CustomerPortal() {
                               Return: {format(new Date(rental.endDate), "MMM dd")}
                             </div>
                           </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Shop Section */}
+            {activeSection === "shop" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Browse Products</CardTitle>
+                    <CardDescription>Discover and rent high-quality products</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="text-center py-8">
+                      <Package className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+                      <h3 className="text-lg font-semibold mb-2">Enhanced Shopping Experience</h3>
+                      <p className="text-gray-600 mb-4">
+                        For the full shopping experience with advanced filters, cart functionality, 
+                        and detailed product views, please use our dedicated shop interface.
+                      </p>
+                      <Button
+                        onClick={() => {
+                          // In a real app, this would navigate to the CustomerPortalShop component
+                          alert("This would navigate to the enhanced shopping interface with full cart functionality!")
+                        }}
+                      >
+                        <ShoppingCart className="h-4 w-4 mr-2" />
+                        Go to Enhanced Shop
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Quick Product Preview */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Featured Products</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                      {availableProducts.slice(0, 6).map((product) => (
+                        <div key={product.id} className="border rounded-lg p-4 hover:shadow-md transition-shadow">
+                          <img
+                            src={product.image}
+                            alt={product.name}
+                            className="w-full h-32 object-cover rounded-md mb-3"
+                          />
+                          <h4 className="font-semibold">{product.name}</h4>
+                          <p className="text-sm text-gray-600 mb-2">{product.category}</p>
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold">${product.pricePerDay}/day</span>
+                            <div className="flex items-center">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
+                              <span className="text-sm">{product.rating}</span>
+                            </div>
+                          </div>
+                          <Button size="sm" className="w-full mt-2">
+                            View Details
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -342,15 +493,26 @@ export function CustomerPortal() {
                         </div>
                         
                         <div className="flex gap-2">
-                          <Button size="sm">
+                          <Button 
+                            size="sm"
+                            onClick={() => handleViewOrderDetails(rental)}
+                          >
                             <Eye className="h-4 w-4 mr-2" />
                             View Details
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleExtendRental(rental)}
+                          >
                             <Truck className="h-4 w-4 mr-2" />
                             Extend Rental
                           </Button>
-                          <Button size="sm" variant="outline">
+                          <Button 
+                            size="sm" 
+                            variant="outline"
+                            onClick={() => handleContactSupport(rental)}
+                          >
                             <Phone className="h-4 w-4 mr-2" />
                             Contact Support
                           </Button>
@@ -405,7 +567,11 @@ export function CustomerPortal() {
                             </div>
                           </TableCell>
                           <TableCell>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleViewOrderDetails(order)}
+                            >
                               <Eye className="h-4 w-4 mr-2" />
                               View
                             </Button>
@@ -479,7 +645,11 @@ export function CustomerPortal() {
                             <Badge variant="default">Paid</Badge>
                           </TableCell>
                           <TableCell>
-                            <Button size="sm" variant="outline">
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleDownloadInvoice(invoice)}
+                            >
                               <Download className="h-4 w-4 mr-2" />
                               Download
                             </Button>
@@ -504,37 +674,55 @@ export function CustomerPortal() {
                     <div className="space-y-4">
                       <div>
                         <Label>Full Name</Label>
-                        <Input value={customerData.profile.name} />
+                        <Input 
+                          value={profileForm.name} 
+                          onChange={(e) => setProfileForm({...profileForm, name: e.target.value})}
+                        />
                       </div>
                       <div>
                         <Label>Email Address</Label>
-                        <Input value={customerData.profile.email} />
+                        <Input 
+                          value={profileForm.email} 
+                          onChange={(e) => setProfileForm({...profileForm, email: e.target.value})}
+                        />
                       </div>
                       <div>
                         <Label>Phone Number</Label>
-                        <Input value={customerData.profile.phone} />
+                        <Input 
+                          value={profileForm.phone} 
+                          onChange={(e) => setProfileForm({...profileForm, phone: e.target.value})}
+                        />
                       </div>
                     </div>
                     
                     <div className="space-y-4">
                       <div>
                         <Label>Address</Label>
-                        <Textarea value={customerData.profile.address} rows={3} />
+                        <Textarea 
+                          value={profileForm.address} 
+                          onChange={(e) => setProfileForm({...profileForm, address: e.target.value})}
+                          rows={3} 
+                        />
                       </div>
                       <div>
                         <Label>Member Since</Label>
-                        <Input value={format(new Date(customerData.profile.memberSince), "MMMM dd, yyyy")} disabled />
+                        <Input value={format(new Date(customerData.profile.memberSince), "MMMM dd, yyyy")} readOnly />
                       </div>
                       <div>
                         <Label>Account Status</Label>
-                        <Input value={customerData.profile.status} disabled />
+                        <Input value={customerData.profile.status} readOnly />
                       </div>
                     </div>
                   </div>
                   
                   <div className="mt-6 flex gap-4">
-                    <Button>Update Profile</Button>
-                    <Button variant="outline">Change Password</Button>
+                    <Button onClick={handleUpdateProfile}>Update Profile</Button>
+                    <Button 
+                      variant="outline"
+                      onClick={() => setShowPasswordChange(true)}
+                    >
+                      Change Password
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
@@ -542,6 +730,195 @@ export function CustomerPortal() {
           </div>
         </div>
       </div>
+
+      {/* Order Details Dialog */}
+      <Dialog open={!!showOrderDetails} onOpenChange={() => setShowOrderDetails(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Order Details</DialogTitle>
+            <DialogDescription>
+              View detailed information about your order
+            </DialogDescription>
+          </DialogHeader>
+          {showOrderDetails && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm text-gray-500">Order ID</Label>
+                <div className="font-medium">{showOrderDetails.id}</div>
+              </div>
+              <div>
+                <Label className="text-sm text-gray-500">Product</Label>
+                <div className="font-medium">{showOrderDetails.product}</div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-gray-500">Start Date</Label>
+                  <div className="font-medium">
+                    {format(new Date(showOrderDetails.startDate), "MMM dd, yyyy")}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">End Date</Label>
+                  <div className="font-medium">
+                    {format(new Date(showOrderDetails.endDate), "MMM dd, yyyy")}
+                  </div>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="text-sm text-gray-500">Amount</Label>
+                  <div className="font-medium">${showOrderDetails.amount}</div>
+                </div>
+                <div>
+                  <Label className="text-sm text-gray-500">Status</Label>
+                  <Badge variant={showOrderDetails.status === "active" ? "default" : "secondary"}>
+                    {showOrderDetails.status}
+                  </Badge>
+                </div>
+              </div>
+              {showOrderDetails.location && (
+                <div>
+                  <Label className="text-sm text-gray-500">Location</Label>
+                  <div className="font-medium">{showOrderDetails.location}</div>
+                </div>
+              )}
+              {showOrderDetails.rating && (
+                <div>
+                  <Label className="text-sm text-gray-500">Your Rating</Label>
+                  <div className="flex items-center">
+                    {[...Array(5)].map((_, i) => (
+                      <Star
+                        key={i}
+                        className={`h-4 w-4 ${i < showOrderDetails.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+              {showOrderDetails.review && (
+                <div>
+                  <Label className="text-sm text-gray-500">Your Review</Label>
+                  <div className="text-sm">{showOrderDetails.review}</div>
+                </div>
+              )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Extend Rental Dialog */}
+      <Dialog open={!!showExtendRental} onOpenChange={() => setShowExtendRental(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Extend Rental</DialogTitle>
+            <DialogDescription>
+              Extend your rental period for {showExtendRental?.product}
+            </DialogDescription>
+          </DialogHeader>
+          {showExtendRental && (
+            <div className="space-y-4">
+              <div>
+                <Label className="text-sm text-gray-500">Current End Date</Label>
+                <div className="font-medium">
+                  {format(new Date(showExtendRental.endDate), "MMM dd, yyyy")}
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="newEndDate">New End Date</Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start text-left font-normal"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {endDate ? format(endDate, "PPP") : "Pick a date"}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      selected={endDate}
+                      onSelect={setEndDate}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <div className="flex gap-2 pt-4">
+                <Button 
+                  onClick={() => {
+                    alert(`Rental extended successfully until ${endDate ? format(endDate, "MMM dd, yyyy") : "selected date"}!`)
+                    setShowExtendRental(null)
+                    setEndDate(undefined)
+                  }}
+                  disabled={!endDate}
+                >
+                  Confirm Extension
+                </Button>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    setShowExtendRental(null)
+                    setEndDate(undefined)
+                  }}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Password Dialog */}
+      <Dialog open={showPasswordChange} onOpenChange={setShowPasswordChange}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              Enter your new password below
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="newPassword">New Password</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter new password"
+              />
+            </div>
+            <div>
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+            <div className="flex gap-2 pt-4">
+              <Button onClick={handleChangePassword}>
+                Change Password
+              </Button>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowPasswordChange(false)
+                  setNewPassword("")
+                  setConfirmPassword("")
+                }}
+              >
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -74,7 +74,7 @@ export function EndUserPlatform({ userData, onSignOut }: EndUserPlatformProps) {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden flex">
       <EndUserNavigation 
         activeTab={activeTab} 
         setActiveTab={setActiveTab}
@@ -82,14 +82,15 @@ export function EndUserPlatform({ userData, onSignOut }: EndUserPlatformProps) {
         onSignOut={onSignOut}
       />
       
-      <main className="container mx-auto px-4 py-6">
+      <main className="flex-1 ml-64 overflow-x-hidden">
+        <div className="container mx-auto px-4 py-6">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           
-          {/* Admin Dashboard */}
+          {/* End User Dashboard */}
           <TabsContent value="dashboard" className="space-y-6">
             <div className="flex items-center justify-between">
               <div>
-                <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+                <h1 className="text-3xl font-bold">End User Dashboard</h1>
                 <p className="text-gray-600">Welcome back, {userData.name}</p>
               </div>
               <div className="flex items-center gap-2">
@@ -325,6 +326,7 @@ export function EndUserPlatform({ userData, onSignOut }: EndUserPlatformProps) {
           </TabsContent>
 
         </Tabs>
+        </div>
       </main>
     </div>
   )
