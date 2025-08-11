@@ -19,7 +19,7 @@ from django.contrib.auth import get_user_model
 from apps.accounts.models import UserProfile, CustomerGroup
 from apps.catalog.models import ProductCategory, Product, ProductImage, ProductItem
 from apps.pricing.models import PriceList, PriceRule, LateFeeRule
-from apps.orders.models import RentalQuote, RentalOrder, OrderItem
+from apps.orders.models import RentalQuote, RentalOrder, RentalItem
 from apps.deliveries.models import DeliveryDocument, DocumentType
 from apps.invoicing.models import Invoice, TaxRate
 from apps.payments.models import PaymentProvider, Payment
@@ -370,15 +370,18 @@ def create_sample_data():
             security_deposit=Decimal('200.00'),
         )
         
-        # Add order items
+        # Add rental items
         for j in range(2):
             if j < len(products):
-                OrderItem.objects.create(
+                RentalItem.objects.create(
                     order=order,
                     product=products[j + i*2],
                     quantity=1,
-                    daily_rate=Decimal('25.00'),
-                    total_amount=Decimal('175.00'),
+                    unit_price=Decimal('25.00'),
+                    line_total=Decimal('175.00'),
+                    start_datetime=timezone.now() + timedelta(days=7),
+                    end_datetime=timezone.now() + timedelta(days=14),
+                    rental_unit='DAY',
                 )
     
     # 12. Create Document Types
