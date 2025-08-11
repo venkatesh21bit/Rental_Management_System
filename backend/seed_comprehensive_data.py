@@ -18,7 +18,7 @@ django.setup()
 from django.contrib.auth import get_user_model
 from apps.accounts.models import UserProfile, CustomerGroup
 from apps.catalog.models import ProductCategory, Product, ProductImage, ProductItem
-from apps.pricing.models import PriceList, PriceRule, Discount, LoyaltyProgram
+from apps.pricing.models import PriceList, PriceRule, LateFeeRule
 from apps.orders.models import RentalQuote, RentalOrder, OrderItem
 from apps.deliveries.models import DeliveryDocument, DocumentType
 from apps.invoicing.models import Invoice, TaxRate
@@ -240,10 +240,10 @@ def create_sample_data():
                 }
             )
     
-    # 6. Create Price Lists and Rules
-    print("💰 Creating pricing rules...")
+    # 7. Create Late Fee Rules
+    print("💰 Creating late fee rules...")
     
-    # Standard Price List
+    # Standard Late Fee Rule
     standard_price_list, created = PriceList.objects.get_or_create(
         name='Standard Pricing',
         defaults={
@@ -263,45 +263,19 @@ def create_sample_data():
         }
     )
     
-    # 7. Create Discounts
-    print("🎁 Creating discounts...")
-    
-    discounts_data = [
-        ('WELCOME10', 'Welcome discount for new customers', 10.0, 'PERCENTAGE'),
-        ('SUMMER20', 'Summer season discount', 20.0, 'PERCENTAGE'),
-        ('BULK50', 'Bulk rental discount', 50.0, 'FIXED'),
-        ('WEEKEND15', 'Weekend special discount', 15.0, 'PERCENTAGE'),
-    ]
-    
-    for code, description, value, discount_type in discounts_data:
-        Discount.objects.get_or_create(
-            code=code,
-            defaults={
-                'description': description,
-                'discount_type': discount_type,
-                'value': Decimal(value),
-                'is_active': True,
-                'valid_from': timezone.now(),
-                'valid_until': timezone.now() + timedelta(days=90),
-                'min_order_value': Decimal('100.00'),
-                'usage_limit': 100,
-            }
-        )
-    
-    # 8. Create Loyalty Program
-    print("🏆 Creating loyalty program...")
-    
-    LoyaltyProgram.objects.get_or_create(
-        name='Gold Member Rewards',
+    # Create a standard late fee rule
+    LateFeeRule.objects.get_or_create(
+        name='Standard Late Fee',
         defaults={
-            'description': 'Earn points with every rental',
-            'points_per_dollar': Decimal('1.0'),
-            'redemption_rate': Decimal('0.01'),
+            'description': 'Standard late fee for overdue rentals',
+            'fee_type': 'PERCENTAGE',
+            'fee_value': Decimal('5.0'),
+            'grace_period_hours': 24,
             'is_active': True,
         }
     )
     
-    # 9. Create Tax Rates
+    # 8. Create Tax Rates
     print("📋 Creating tax rates...")
     
     tax_rates_data = [
@@ -320,7 +294,7 @@ def create_sample_data():
             }
         )
     
-    # 10. Create Payment Providers
+    # 9. Create Payment Providers
     print("💳 Creating payment providers...")
     
     providers_data = [
@@ -342,7 +316,7 @@ def create_sample_data():
             }
         )
     
-    # 11. Create Notification Templates
+    # 10. Create Notification Templates
     print("📧 Creating notification templates...")
     
     templates_data = [
@@ -364,7 +338,7 @@ def create_sample_data():
             }
         )
     
-    # 12. Create Sample Orders
+    # 11. Create Sample Orders
     print("📝 Creating sample orders...")
     
     # Create some quotes and orders
@@ -403,11 +377,11 @@ def create_sample_data():
                     order=order,
                     product=products[j + i*2],
                     quantity=1,
-                    daily_rate=products[j + i*2].daily_rental_rate,
-                    total_amount=products[j + i*2].daily_rental_rate * 7,
+                    daily_rate=Decimal('25.00'),
+                    total_amount=Decimal('175.00'),
                 )
     
-    # 13. Create Document Types
+    # 12. Create Document Types
     print("📄 Creating document types...")
     
     document_types_data = [
