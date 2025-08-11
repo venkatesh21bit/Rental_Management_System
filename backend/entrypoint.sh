@@ -49,6 +49,28 @@ django.setup()
 exec(open('create_superuser.py').read())
 "
 
+# Seed database with sample data (only if empty)
+echo "Seeding database with sample data..."
+python -c "
+import django
+import os
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')
+django.setup()
+
+from django.contrib.auth import get_user_model
+from apps.catalog.models import ProductCategory, Product
+
+User = get_user_model()
+
+# Check if database already has data
+if ProductCategory.objects.count() == 0 and Product.objects.count() == 0:
+    print('Database is empty, seeding with sample data...')
+    exec(open('seed_comprehensive_data.py').read())
+    print('Sample data seeding completed!')
+else:
+    print('Database already contains data, skipping seeding.')
+"
+
 # Collect static files
 echo "Collecting static files..."
 python manage.py collectstatic --noinput
