@@ -262,10 +262,10 @@ class ScheduledNotificationAdmin(admin.ModelAdmin):
     """Admin interface for scheduled notifications"""
     list_display = [
         'name', 'schedule_type', 'frequency', 'template_name',
-        'status_badge', 'next_run_at', 'last_run_at', 'is_active'
+        'active_badge', 'next_run_at', 'last_run_at', 'is_active'
     ]
     list_filter = [
-        'schedule_type', 'frequency', 'status', 'is_active',
+        'schedule_type', 'frequency', 'is_active',
         'next_run_at', 'last_run_at'
     ]
     search_fields = ['name', 'template__name']
@@ -275,7 +275,7 @@ class ScheduledNotificationAdmin(admin.ModelAdmin):
             'fields': ('name', 'schedule_type', 'template', 'is_active')
         }),
         ('Schedule Configuration', {
-            'fields': ('frequency', 'send_time', 'status')
+            'fields': ('frequency', 'send_time')
         }),
         ('Trigger Conditions', {
             'fields': ('days_before_event', 'days_after_event')
@@ -294,18 +294,16 @@ class ScheduledNotificationAdmin(admin.ModelAdmin):
         return obj.template.name
     template_name.short_description = 'Template'
     
-    def status_badge(self, obj):
-        colors = {
-            'ACTIVE': 'green',
-            'PAUSED': 'orange',
-            'INACTIVE': 'gray'
-        }
-        color = colors.get(obj.status, 'gray')
-        return format_html(
-            '<span style="color: {}; font-weight: bold;">{}</span>',
-            color, obj.get_status_display()
-        )
-    status_badge.short_description = 'Status'
+    def active_badge(self, obj):
+        if obj.is_active:
+            return format_html(
+                '<span style="color: green; font-weight: bold;">Active</span>'
+            )
+        else:
+            return format_html(
+                '<span style="color: red; font-weight: bold;">Inactive</span>'
+            )
+    active_badge.short_description = 'Status'
 
 
 @admin.register(NotificationLog)

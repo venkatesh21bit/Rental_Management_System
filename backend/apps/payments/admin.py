@@ -12,32 +12,32 @@ from .models import (
 class PaymentProviderAdmin(admin.ModelAdmin):
     """Admin interface for payment providers"""
     list_display = [
-        'name', 'provider_type', 'is_active', 'is_default',
-        'supported_currencies_display', 'test_mode', 'created_at'
+        'name', 'provider_type', 'is_active', 'is_test_mode',
+        'currency_supported_display', 'created_at'
     ]
     list_filter = [
-        'provider_type', 'is_active', 'is_default', 'test_mode', 'created_at'
+        'provider_type', 'is_active', 'is_test_mode', 'created_at'
     ]
-    search_fields = ['name', 'provider_type', 'supported_currencies']
+    search_fields = ['name', 'provider_type']
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('name', 'provider_type', 'is_active', 'is_default')
+            'fields': ('name', 'provider_type', 'is_active', 'is_test_mode')
         }),
         ('Configuration', {
             'fields': (
-                'api_key', 'api_secret', 'webhook_secret', 'api_endpoint',
-                'test_mode', 'supported_currencies'
+                'api_key', 'api_secret', 'webhook_secret',
+                'currency_supported'
             )
         }),
-        ('Rate Limiting', {
+        ('Limits & Fees', {
             'fields': (
-                'rate_limit_per_minute', 'rate_limit_per_hour', 'rate_limit_per_day'
+                'min_amount', 'max_amount', 'processing_fee_percent', 'processing_fee_fixed'
             ),
             'classes': ['collapse']
         }),
-        ('Additional Settings', {
-            'fields': ('additional_config',),
+        ('Additional Info', {
+            'fields': ('description', 'logo_url'),
             'classes': ['collapse']
         }),
         ('Timestamps', {
@@ -47,12 +47,12 @@ class PaymentProviderAdmin(admin.ModelAdmin):
     )
     readonly_fields = ['created_at', 'updated_at']
     
-    def supported_currencies_display(self, obj):
+    def currency_supported_display(self, obj):
         """Display supported currencies as a comma-separated list"""
-        if obj.supported_currencies:
-            return ', '.join(obj.supported_currencies[:3]) + ('...' if len(obj.supported_currencies) > 3 else '')
+        if obj.currency_supported:
+            return ', '.join(obj.currency_supported[:3]) + ('...' if len(obj.currency_supported) > 3 else '')
         return 'None'
-    supported_currencies_display.short_description = 'Currencies'
+    currency_supported_display.short_description = 'Currencies'
 
 
 @admin.register(Payment)
@@ -60,19 +60,19 @@ class PaymentAdmin(admin.ModelAdmin):
     """Admin interface for payments"""
     list_display = [
         'payment_number', 'customer_name', 'amount_display', 'status_badge',
-        'payment_method', 'provider_name', 'created_at', 'paid_at'
+        'payment_method', 'provider_name', 'created_at', 'completed_at'
     ]
     list_filter = [
         'status', 'payment_method', 'provider', 'currency',
-        'created_at', 'paid_at'
+        'created_at', 'completed_at'
     ]
     search_fields = [
         'payment_number', 'customer__username', 'customer__email',
-        'gateway_payment_id', 'transaction_id', 'invoice__invoice_number'
+        'gateway_payment_id', 'gateway_order_id', 'invoice__invoice_number'
     ]
     readonly_fields = [
         'id', 'payment_number', 'gateway_payment_id', 'gateway_response',
-        'created_at', 'updated_at'
+        'created_at', 'completed_at', 'processed_at'
     ]
     
     fieldsets = (
@@ -89,12 +89,12 @@ class PaymentAdmin(admin.ModelAdmin):
         }),
         ('Gateway Information', {
             'fields': (
-                'gateway_payment_id', 'transaction_id', 'gateway_response'
+                'gateway_payment_id', 'gateway_order_id', 'gateway_signature', 'gateway_response'
             ),
             'classes': ['collapse']
         }),
         ('Timestamps', {
-            'fields': ('created_at', 'paid_at', 'updated_at')
+            'fields': ('created_at', 'processed_at', 'completed_at')
         }),
         ('Failure Information', {
             'fields': ('failure_reason',),
@@ -145,7 +145,7 @@ class PaymentAdmin(admin.ModelAdmin):
         """Mark selected payments as completed"""
         count = queryset.filter(status='PROCESSING').update(
             status='COMPLETED',
-            paid_at=timezone.now()
+            completed_at=timezone.now()
         )
         self.message_user(request, f"{count} payments marked as completed.")
     mark_as_completed.short_description = "Mark as completed"
@@ -177,10 +177,10 @@ class PaymentRefundAdmin(admin.ModelAdmin):
     """Admin interface for payment refunds"""
     list_display = [
         'refund_number', 'payment_number', 'amount_display', 'status_badge',
-        'reason', 'processed_at', 'created_at'
+        'reason', 'completed_at', 'requested_at'
     ]
     list_filter = [
-        'status', 'reason', 'processed_at', 'created_at'
+        'status', 'reason', 'completed_at', 'requested_at'
     ]
     search_fields = [
         'refund_number', 'payment__payment_number',
@@ -188,7 +188,7 @@ class PaymentRefundAdmin(admin.ModelAdmin):
     ]
     readonly_fields = [
         'id', 'refund_number', 'gateway_refund_id', 'gateway_response',
-        'created_at', 'updated_at'
+        'requested_at', 'processed_at', 'completed_at'
     ]
     
     fieldsets = (
@@ -198,18 +198,14 @@ class PaymentRefundAdmin(admin.ModelAdmin):
             )
         }),
         ('Refund Details', {
-            'fields': ('amount', 'reason', 'notes')
+            'fields': ('amount', 'currency', 'reason', 'notes')
         }),
         ('Gateway Information', {
             'fields': ('gateway_refund_id', 'gateway_response'),
             'classes': ['collapse']
         }),
         ('Processing', {
-            'fields': ('processed_by', 'processed_at')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ['collapse']
+            'fields': ('created_by', 'requested_at', 'processed_at', 'completed_at')
         })
     )
     
@@ -247,15 +243,15 @@ class PaymentRefundAdmin(admin.ModelAdmin):
 class WebhookEventAdmin(admin.ModelAdmin):
     """Admin interface for webhook events"""
     list_display = [
-        'event_id', 'provider', 'event_type', 'processed_badge',
+        'event_id', 'provider', 'event_type', 'status_badge',
         'received_at', 'processed_at'
     ]
     list_filter = [
-        'provider', 'event_type', 'processed', 'received_at'
+        'provider', 'event_type', 'status', 'received_at'
     ]
     search_fields = ['event_id', 'event_type', 'error_message']
     readonly_fields = [
-        'id', 'event_id', 'received_at', 'processed_at', 'updated_at'
+        'id', 'event_id', 'received_at', 'processed_at'
     ]
     
     fieldsets = (
@@ -263,43 +259,47 @@ class WebhookEventAdmin(admin.ModelAdmin):
             'fields': ('id', 'event_id', 'provider', 'event_type')
         }),
         ('Processing Status', {
-            'fields': ('processed', 'received_at', 'processed_at')
+            'fields': ('status', 'received_at', 'processed_at')
+        }),
+        ('Related Objects', {
+            'fields': ('payment', 'refund')
         }),
         ('Event Data', {
-            'fields': ('event_data',),
+            'fields': ('payload', 'headers'),
             'classes': ['collapse']
         }),
-        ('Error Information', {
-            'fields': ('error_message',),
-            'classes': ['collapse']
-        }),
-        ('Timestamps', {
-            'fields': ('updated_at',),
+        ('Processing Details', {
+            'fields': ('processing_notes', 'error_message', 'signature_verified'),
             'classes': ['collapse']
         })
     )
     
     actions = ['reprocess_webhooks', 'mark_as_processed']
     
-    def processed_badge(self, obj):
+    def status_badge(self, obj):
         """Display processing status"""
-        if obj.processed:
-            return format_html('<span style="color: green; font-weight: bold;">✅ Processed</span>')
-        else:
-            return format_html('<span style="color: orange; font-weight: bold;">⏳ Pending</span>')
-    processed_badge.short_description = 'Status'
+        colors = {
+            'RECEIVED': 'blue',
+            'PROCESSING': 'orange', 
+            'PROCESSED': 'green',
+            'FAILED': 'red',
+            'IGNORED': 'gray'
+        }
+        color = colors.get(obj.status, 'gray')
+        return format_html('<span style="color: {}; font-weight: bold;">{}</span>', color, obj.get_status_display())
+    status_badge.short_description = 'Status'
     
     def reprocess_webhooks(self, request, queryset):
         """Reprocess selected webhook events"""
-        unprocessed = queryset.filter(processed=False)
-        count = unprocessed.update(error_message='')
+        unprocessed = queryset.filter(status__in=['RECEIVED', 'FAILED'])
+        count = unprocessed.update(error_message='', status='RECEIVED')
         self.message_user(request, f"{count} webhook events queued for reprocessing.")
     reprocess_webhooks.short_description = "Reprocess webhooks"
     
     def mark_as_processed(self, request, queryset):
         """Mark webhooks as processed"""
-        count = queryset.filter(processed=False).update(
-            processed=True,
+        count = queryset.filter(status__in=['RECEIVED', 'PROCESSING']).update(
+            status='PROCESSED',
             processed_at=timezone.now()
         )
         self.message_user(request, f"{count} webhooks marked as processed.")
@@ -311,17 +311,17 @@ class PaymentLinkAdmin(admin.ModelAdmin):
     """Admin interface for payment links"""
     list_display = [
         'link_id', 'customer_name', 'amount_display', 'status_badge',
-        'expires_at', 'used_at', 'created_at'
+        'expires_at', 'access_count', 'created_at'
     ]
     list_filter = [
-        'status', 'created_at', 'expires_at', 'used_at'
+        'status', 'created_at', 'expires_at'
     ]
     search_fields = [
         'link_id', 'customer__username', 'customer__email',
         'description', 'invoice__invoice_number'
     ]
     readonly_fields = [
-        'id', 'link_id', 'link_url', 'used_at', 'created_at', 'updated_at'
+        'id', 'link_id', 'access_count', 'created_at', 'updated_at'
     ]
     
     fieldsets = (
@@ -332,13 +332,13 @@ class PaymentLinkAdmin(admin.ModelAdmin):
             'fields': ('amount', 'currency', 'description')
         }),
         ('Link Configuration', {
-            'fields': ('link_url', 'expires_at')
+            'fields': ('expires_at', 'max_access_count', 'access_count')
         }),
-        ('Usage Tracking', {
-            'fields': ('used_at', 'payment')
+        ('Payment Tracking', {
+            'fields': ('payment',)
         }),
-        ('Additional Settings', {
-            'fields': ('metadata',),
+        ('Notification Settings', {
+            'fields': ('send_email', 'send_sms'),
             'classes': ['collapse']
         }),
         ('Timestamps', {
@@ -380,35 +380,34 @@ class PaymentLinkAdmin(admin.ModelAdmin):
 class BankAccountAdmin(admin.ModelAdmin):
     """Admin interface for bank accounts"""
     list_display = [
-        'account_name', 'bank_name', 'account_type', 'currency',
-        'is_active', 'is_default', 'created_at'
+        'account_holder_name', 'bank_name', 'account_type',
+        'is_active', 'is_default', 'is_verified', 'created_at'
     ]
     list_filter = [
-        'account_type', 'currency', 'is_active', 'is_default',
+        'account_type', 'is_active', 'is_default', 'is_verified',
         'bank_name', 'created_at'
     ]
     search_fields = [
-        'account_name', 'bank_name', 'account_number',
-        'routing_number', 'swift_code'
+        'account_holder_name', 'bank_name', 'account_number',
+        'routing_number', 'ifsc_code', 'swift_code'
     ]
-    readonly_fields = ['id', 'created_at', 'updated_at']
+    readonly_fields = ['created_at', 'updated_at']
     
     fieldsets = (
         ('Basic Information', {
             'fields': (
-                'id', 'account_name', 'account_type', 'currency',
+                'customer', 'account_holder_name', 'account_type',
                 'is_active', 'is_default'
             )
         }),
-        ('Bank Details', {
+        ('Account Details', {
             'fields': (
-                'bank_name', 'bank_address', 'account_number',
-                'routing_number', 'swift_code', 'iban'
+                'bank_name', 'branch_name', 'account_number',
+                'routing_number', 'ifsc_code', 'swift_code'
             )
         }),
-        ('Additional Information', {
-            'fields': ('description', 'metadata'),
-            'classes': ['collapse']
+        ('Verification', {
+            'fields': ('is_verified', 'verification_document')
         }),
         ('Timestamps', {
             'fields': ('created_at', 'updated_at'),

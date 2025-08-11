@@ -324,11 +324,23 @@ class InvoiceViewSet(viewsets.ModelViewSet):
             amount=Sum('total_amount')
         )['amount'] or 0
         
-        # Average payment days (simplified calculation)
+        # Average payment days (based on invoice due dates and issue dates)
         paid_invoices = queryset.filter(status=Invoice.Status.PAID)
         if paid_invoices.exists():
-            # This is a simplified calculation - in reality you'd track actual payment dates
-            stats['average_payment_days'] = 15.0  # Placeholder
+            # Calculate average days between issue and due date for paid invoices
+            # This gives an estimate since we don't track actual payment dates
+            total_days = 0
+            count = 0
+            for invoice in paid_invoices:
+                if invoice.due_date and invoice.issue_date:
+                    days_diff = (invoice.due_date - invoice.issue_date).days
+                    total_days += days_diff
+                    count += 1
+            
+            if count > 0:
+                stats['average_payment_days'] = round(total_days / count, 1)
+            else:
+                stats['average_payment_days'] = 30.0  # Default assumption
         else:
             stats['average_payment_days'] = 0.0
         

@@ -17,7 +17,7 @@ from django.utils import timezone
 from django.core.cache import cache
 from .services import payment_service
 from .models import WebhookEvent, Payment
-from utils.email_service import send_email
+from utils.email_service import email_service
 
 logger = logging.getLogger(__name__)
 
@@ -168,15 +168,17 @@ class StripeWebhookView(View):
             # Send confirmation email
             if payment.customer and payment.customer.email:
                 try:
-                    send_email(
+                    email_service.send_notification_email(
                         to_email=payment.customer.email,
                         subject=f'Payment Confirmation - {payment.payment_number}',
-                        template='payments/payment_success.html',
+                        template_name='payment_success',
                         context={
                             'payment': payment,
                             'amount': amount_received,
                             'currency': currency
-                        }
+                        },
+                        user=payment.customer,
+                        notification_type='PAYMENT_CONFIRMATION'
                     )
                 except Exception as e:
                     logger.error(f"Failed to send payment confirmation email: {e}")
@@ -211,14 +213,16 @@ class StripeWebhookView(View):
             # Send failure notification email
             if payment.customer and payment.customer.email:
                 try:
-                    send_email(
+                    email_service.send_notification_email(
                         to_email=payment.customer.email,
                         subject=f'Payment Failed - {payment.payment_number}',
-                        template='payments/payment_failed.html',
+                        template_name='payment_failed',
                         context={
                             'payment': payment,
                             'failure_reason': failure_reason
-                        }
+                        },
+                        user=payment.customer,
+                        notification_type='PAYMENT_FAILED'
                     )
                 except Exception as e:
                     logger.error(f"Failed to send payment failure email: {e}")
@@ -307,15 +311,17 @@ class StripeWebhookView(View):
                 try:
                     admin_email = getattr(settings, 'ADMIN_EMAIL', None)
                     if admin_email:
-                        send_email(
+                        email_service.send_notification_email(
                             to_email=admin_email,
                             subject=f'Payment Dispute Created - {payment.payment_number}',
-                            template='payments/dispute_notification.html',
+                            template_name='dispute_notification',
                             context={
                                 'payment': payment,
                                 'dispute_reason': dispute_reason,
                                 'dispute_amount': dispute_amount
-                            }
+                            },
+                            user=None,
+                            notification_type='ADMIN_DISPUTE_NOTIFICATION'
                         )
                 except Exception as e:
                     logger.error(f"Failed to send dispute notification email: {e}")
@@ -387,15 +393,17 @@ class StripeWebhookView(View):
                 if payment.customer and payment.customer.email:
                     try:
                         total_refunded = sum(r.get('amount', 0) for r in refunds) / 100
-                        send_email(
+                        email_service.send_notification_email(
                             to_email=payment.customer.email,
                             subject=f'Refund Processed - {payment.payment_number}',
-                            template='payments/refund_confirmation.html',
+                            template_name='refund_confirmation',
                             context={
                                 'payment': payment,
                                 'refunded_amount': total_refunded,
                                 'currency': payment.currency
-                            }
+                            },
+                            user=payment.customer,
+                            notification_type='REFUND_CONFIRMATION'
                         )
                     except Exception as e:
                         logger.error(f"Failed to send refund confirmation email: {e}")
