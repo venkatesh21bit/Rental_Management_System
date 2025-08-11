@@ -134,7 +134,7 @@ def create_sample_data():
             name=name,
             defaults={
                 'description': description,
-                'discount_percentage': Decimal(discount)
+                'discount_percent': Decimal(discount)
             }
         )
     
