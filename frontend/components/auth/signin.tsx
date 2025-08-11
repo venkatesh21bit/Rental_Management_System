@@ -40,8 +40,7 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
   
   const [endUserForm, setEndUserForm] = useState({
     email: "",
-    password: "",
-    employeeId: ""
+    password: ""
   })
 
   const handleCustomerSignIn = async (e: React.FormEvent) => {
@@ -78,7 +77,6 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
       id: "EMP-001",
       name: "Admin User",
       email: endUserForm.email,
-      employeeId: endUserForm.employeeId,
       role: "manager",
       department: "Operations",
       permissions: ["all"]
@@ -259,22 +257,6 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
               <TabsContent value="end-user">
                 <form onSubmit={handleEndUserSignIn} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="employee-id">Employee ID</Label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                      <Input
-                        id="employee-id"
-                        type="text"
-                        placeholder="EMP-001"
-                        className="pl-10"
-                        value={endUserForm.employeeId}
-                        onChange={(e) => setEndUserForm({...endUserForm, employeeId: e.target.value})}
-                        required
-                      />
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-2">
                     <Label htmlFor="enduser-email">Email Address</Label>
                     <div className="relative">
                       <Mail className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -314,7 +296,7 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
                   </div>
 
                   <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In to Admin Portal"}
+                    {isLoading ? "Signing In..." : "Sign In to End User Portal"}
                   </Button>
                   
                   <div className="text-center">
