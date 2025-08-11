@@ -11,18 +11,540 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger 
 } from "@/components/ui/dialog"
-import { Search, CalendarIcon, ShoppingCart, CreditCard, Package, Star, Heart, Clock, CheckCircle } from "lucide-react"
-import { format } from "date-fns"
+import { 
+  Search, 
+  CalendarIcon, 
+  ShoppingCart, 
+  CreditCard, 
+  Package, 
+  Star, 
+  Heart, 
+  Clock, 
+  CheckCircle,
+  Eye,
+  Download,
+  Phone,
+  Mail,
+  MapPin,
+  User,
+  FileText,
+  DollarSign,
+  Truck,
+  AlertCircle,
+  Filter
+} from "lucide-react"
+import { format, addDays } from "date-fns"
 
-// Hardcoded customer portal data
+// Customer Portal Data - Based on Architecture
+const customerData = {
+  profile: {
+    id: "CUST-001",
+    name: "John Smith",
+    email: "john.smith@email.com",
+    phone: "+1 (555) 123-4567",
+    address: "123 Main Street, New York, NY 10001",
+    memberSince: "2023-01-15",
+    totalOrders: 12,
+    totalSpent: 4560.00,
+    status: "Premium"
+  },
+  currentRentals: [
+    {
+      id: "RO-2024-001",
+      product: "Professional Camera Kit",
+      startDate: "2024-08-10",
+      endDate: "2024-08-15",
+      status: "active",
+      amount: 375.00,
+      deposit: 200.00,
+      location: "Downtown Store",
+      returnDate: "2024-08-15"
+    },
+    {
+      id: "RO-2024-002", 
+      product: "Sound System Package",
+      startDate: "2024-08-12",
+      endDate: "2024-08-14",
+      status: "active",
+      amount: 180.00,
+      deposit: 100.00,
+      location: "Audio Center",
+      returnDate: "2024-08-14"
+    }
+  ],
+  orderHistory: [
+    {
+      id: "RO-2024-003",
+      product: "Power Tools Set",
+      startDate: "2024-07-20",
+      endDate: "2024-07-25",
+      status: "completed",
+      amount: 225.00,
+      deposit: 150.00,
+      rating: 5,
+      review: "Excellent tools, great condition"
+    },
+    {
+      id: "RO-2024-004",
+      product: "Party Decoration Package",
+      startDate: "2024-07-10",
+      endDate: "2024-07-12",
+      status: "completed",
+      amount: 280.00,
+      deposit: 100.00,
+      rating: 4,
+      review: "Good quality decorations"
+    }
+  ],
+  notifications: [
+    {
+      id: "N001",
+      type: "reminder",
+      title: "Return Reminder",
+      message: "Camera Kit rental ends tomorrow. Please return to Downtown Store.",
+      date: "2024-08-14",
+      priority: "high"
+    },
+    {
+      id: "N002",
+      type: "promotion",
+      title: "Weekend Special",
+      message: "20% off on all weekend rentals. Book now!",
+      date: "2024-08-13",
+      priority: "medium"
+    }
+  ],
+  invoices: [
+    {
+      id: "INV-2024-001",
+      orderRef: "RO-2024-001",
+      amount: 375.00,
+      status: "paid",
+      date: "2024-08-10",
+      downloadUrl: "#"
+    },
+    {
+      id: "INV-2024-002",
+      orderRef: "RO-2024-002", 
+      amount: 180.00,
+      status: "paid",
+      date: "2024-08-12",
+      downloadUrl: "#"
+    }
+  ]
+}
+
+export function CustomerPortal() {
+  const [activeSection, setActiveSection] = useState("dashboard")
+
+  const sectionItems = [
+    { id: "dashboard", label: "Dashboard", icon: User },
+    { id: "current-rentals", label: "Current Rentals", icon: Package },
+    { id: "order-history", label: "Order History", icon: FileText },
+    { id: "notifications", label: "Notifications", icon: AlertCircle },
+    { id: "invoices", label: "Invoices & Billing", icon: DollarSign },
+    { id: "profile", label: "My Profile", icon: User }
+  ]
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b shadow-sm">
+        <div className="container mx-auto px-4 py-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">Customer Portal</h1>
+              <p className="text-gray-600">Welcome back, {customerData.profile.name}</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <Badge variant={customerData.profile.status === "Premium" ? "default" : "secondary"}>
+                {customerData.profile.status} Member
+              </Badge>
+              <div className="text-right">
+                <div className="text-sm text-gray-500">Total Spent</div>
+                <div className="font-semibold">${customerData.profile.totalSpent.toFixed(2)}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="container mx-auto px-4 py-8">
+        <div className="flex gap-8">
+          {/* Sidebar Navigation */}
+          <div className="w-64 flex-shrink-0">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Menu</CardTitle>
+              </CardHeader>
+              <CardContent className="p-0">
+                <nav className="space-y-1">
+                  {sectionItems.map((item) => {
+                    const Icon = item.icon
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => setActiveSection(item.id)}
+                        className={`w-full flex items-center px-4 py-3 text-left hover:bg-gray-50 transition-colors ${
+                          activeSection === item.id 
+                            ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700" 
+                            : "text-gray-700"
+                        }`}
+                      >
+                        <Icon className="h-5 w-5 mr-3" />
+                        {item.label}
+                      </button>
+                    )
+                  })}
+                </nav>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Main Content Area */}
+          <div className="flex-1">
+            {/* Dashboard Section */}
+            {activeSection === "dashboard" && (
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600">Active Rentals</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{customerData.currentRentals.length}</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600">Total Orders</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{customerData.profile.totalOrders}</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600">Total Spent</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">${customerData.profile.totalSpent.toFixed(2)}</div>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-sm font-medium text-gray-600">Member Since</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-2xl font-bold">{format(new Date(customerData.profile.memberSince), "MMM yyyy")}</div>
+                    </CardContent>
+                  </Card>
+                </div>
+
+                {/* Quick Actions */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Quick Actions</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <Button className="h-16">
+                        <Package className="h-6 w-6 mr-2" />
+                        Browse Products
+                      </Button>
+                      <Button variant="outline" className="h-16">
+                        <FileText className="h-6 w-6 mr-2" />
+                        View Orders
+                      </Button>
+                      <Button variant="outline" className="h-16">
+                        <User className="h-6 w-6 mr-2" />
+                        Update Profile
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Recent Activity */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {customerData.currentRentals.map((rental) => (
+                        <div key={rental.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                          <div>
+                            <div className="font-medium">{rental.product}</div>
+                            <div className="text-sm text-gray-500">Order: {rental.id}</div>
+                          </div>
+                          <div className="text-right">
+                            <Badge variant="default">Active</Badge>
+                            <div className="text-sm text-gray-500 mt-1">
+                              Return: {format(new Date(rental.endDate), "MMM dd")}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Current Rentals Section */}
+            {activeSection === "current-rentals" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Current Rentals</CardTitle>
+                  <CardDescription>Manage your active rental orders</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {customerData.currentRentals.map((rental) => (
+                      <div key={rental.id} className="border rounded-lg p-6">
+                        <div className="flex items-center justify-between mb-4">
+                          <div>
+                            <h3 className="text-lg font-semibold">{rental.product}</h3>
+                            <p className="text-gray-600">Order ID: {rental.id}</p>
+                          </div>
+                          <Badge variant="default">Active</Badge>
+                        </div>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+                          <div>
+                            <Label className="text-sm text-gray-500">Start Date</Label>
+                            <div className="font-medium">{format(new Date(rental.startDate), "MMM dd, yyyy")}</div>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-gray-500">End Date</Label>
+                            <div className="font-medium">{format(new Date(rental.endDate), "MMM dd, yyyy")}</div>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-gray-500">Location</Label>
+                            <div className="font-medium">{rental.location}</div>
+                          </div>
+                          <div>
+                            <Label className="text-sm text-gray-500">Amount</Label>
+                            <div className="font-medium">${rental.amount}</div>
+                          </div>
+                        </div>
+                        
+                        <div className="flex gap-2">
+                          <Button size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View Details
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Truck className="h-4 w-4 mr-2" />
+                            Extend Rental
+                          </Button>
+                          <Button size="sm" variant="outline">
+                            <Phone className="h-4 w-4 mr-2" />
+                            Contact Support
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Order History Section */}
+            {activeSection === "order-history" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Order History</CardTitle>
+                  <CardDescription>View your past rental orders</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Order ID</TableHead>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Date Range</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Rating</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customerData.orderHistory.map((order) => (
+                        <TableRow key={order.id}>
+                          <TableCell className="font-medium">{order.id}</TableCell>
+                          <TableCell>{order.product}</TableCell>
+                          <TableCell>
+                            {format(new Date(order.startDate), "MMM dd")} - {format(new Date(order.endDate), "MMM dd")}
+                          </TableCell>
+                          <TableCell>${order.amount}</TableCell>
+                          <TableCell>
+                            <Badge variant="secondary">Completed</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center">
+                              {[...Array(5)].map((_, i) => (
+                                <Star
+                                  key={i}
+                                  className={`h-4 w-4 ${i < order.rating ? "fill-yellow-400 text-yellow-400" : "text-gray-300"}`}
+                                />
+                              ))}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="outline">
+                              <Eye className="h-4 w-4 mr-2" />
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Notifications Section */}
+            {activeSection === "notifications" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Notifications</CardTitle>
+                  <CardDescription>Stay updated with your rental activities</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {customerData.notifications.map((notification) => (
+                      <div key={notification.id} className={`p-4 rounded-lg border-l-4 ${
+                        notification.priority === "high" ? "border-red-500 bg-red-50" :
+                        notification.priority === "medium" ? "border-yellow-500 bg-yellow-50" :
+                        "border-blue-500 bg-blue-50"
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <h4 className="font-semibold">{notification.title}</h4>
+                            <p className="text-gray-600 mt-1">{notification.message}</p>
+                          </div>
+                          <div className="text-sm text-gray-500">
+                            {format(new Date(notification.date), "MMM dd")}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Invoices & Billing Section */}
+            {activeSection === "invoices" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Invoices & Billing</CardTitle>
+                  <CardDescription>Download invoices and manage billing</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Invoice ID</TableHead>
+                        <TableHead>Order Reference</TableHead>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Amount</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead>Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {customerData.invoices.map((invoice) => (
+                        <TableRow key={invoice.id}>
+                          <TableCell className="font-medium">{invoice.id}</TableCell>
+                          <TableCell>{invoice.orderRef}</TableCell>
+                          <TableCell>{format(new Date(invoice.date), "MMM dd, yyyy")}</TableCell>
+                          <TableCell>${invoice.amount}</TableCell>
+                          <TableCell>
+                            <Badge variant="default">Paid</Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Button size="sm" variant="outline">
+                              <Download className="h-4 w-4 mr-2" />
+                              Download
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Profile Section */}
+            {activeSection === "profile" && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>My Profile</CardTitle>
+                  <CardDescription>Manage your account information</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Full Name</Label>
+                        <Input value={customerData.profile.name} />
+                      </div>
+                      <div>
+                        <Label>Email Address</Label>
+                        <Input value={customerData.profile.email} />
+                      </div>
+                      <div>
+                        <Label>Phone Number</Label>
+                        <Input value={customerData.profile.phone} />
+                      </div>
+                    </div>
+                    
+                    <div className="space-y-4">
+                      <div>
+                        <Label>Address</Label>
+                        <Textarea value={customerData.profile.address} rows={3} />
+                      </div>
+                      <div>
+                        <Label>Member Since</Label>
+                        <Input value={format(new Date(customerData.profile.memberSince), "MMMM dd, yyyy")} disabled />
+                      </div>
+                      <div>
+                        <Label>Account Status</Label>
+                        <Input value={customerData.profile.status} disabled />
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 flex gap-4">
+                    <Button>Update Profile</Button>
+                    <Button variant="outline">Change Password</Button>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
 const availableProducts = [
   {
     id: "P001",
@@ -98,7 +620,7 @@ const availableProducts = [
   },
 ]
 
-const customerOrders = [
+const endUserOrders = [
   {
     id: "RO-001",
     products: ["Professional Camera Kit"],
@@ -119,7 +641,7 @@ const customerOrders = [
   },
 ]
 
-export function CustomerPortal() {
+export function EndUserPortal() {
   const [searchTerm, setSearchTerm] = useState("")
   const [categoryFilter, setCategoryFilter] = useState("all")
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
@@ -187,11 +709,11 @@ export function CustomerPortal() {
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">24/7</div>
-            <div className="text-sm text-muted-foreground">Customer Support</div>
+            <div className="text-sm text-muted-foreground">User Support</div>
           </div>
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">1000+</div>
-            <div className="text-sm text-muted-foreground">Happy Customers</div>
+            <div className="text-sm text-muted-foreground">Happy Users</div>
           </div>
         </div>
       </div>
@@ -458,7 +980,7 @@ export function CustomerPortal() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {customerOrders.map((order) => (
+                {endUserOrders.map((order) => (
                   <div key={order.id} className="border rounded-lg p-4">
                     <div className="flex items-center justify-between mb-3">
                       <div>

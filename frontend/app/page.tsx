@@ -8,7 +8,9 @@ import { Button } from "@/components/ui/button"
 import { Package, ShoppingCart, Users, TrendingUp, AlertTriangle, DollarSign } from "lucide-react"
 import { ProductManagement } from "@/components/product-management"
 import { OrderManagement } from "@/components/order-management"
+import { EndUserPortal } from "@/components/end-user-portal"
 import { CustomerPortal } from "@/components/customer-portal"
+import { CustomerPortalShop } from "@/components/customer-portal-shop"
 import { DeliveryManagement } from "@/components/delivery-management"
 import { PricingManagement } from "@/components/pricing-management"
 import { ReportsAnalytics } from "@/components/reports-analytics"
@@ -191,23 +193,31 @@ export default function RentalManagementSystem() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="products">
+          <TabsContent value="product-management">
             <ProductManagement />
           </TabsContent>
 
-          <TabsContent value="orders">
+          <TabsContent value="order-management">
             <OrderManagement />
           </TabsContent>
 
-          <TabsContent value="delivery">
-            <DeliveryManagement />
+          <TabsContent value="end-user-portal">
+            <EndUserPortal />
           </TabsContent>
 
-          <TabsContent value="pricing">
+          <TabsContent value="customer-shop">
+            <CustomerPortalShop />
+          </TabsContent>
+
+          <TabsContent value="pricing-management">
             <PricingManagement />
           </TabsContent>
 
-          <TabsContent value="reports">
+          <TabsContent value="delivery-management">
+            <DeliveryManagement />
+          </TabsContent>
+
+          <TabsContent value="reports-analytics">
             <ReportsAnalytics />
           </TabsContent>
 
