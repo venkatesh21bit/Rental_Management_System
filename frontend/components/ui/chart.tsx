@@ -144,7 +144,7 @@ function ChartTooltipContent(props: React.ComponentProps<typeof RechartsPrimitiv
     const labelValue =
       typeof (props as any).label !== "undefined"
         ? (props as any).label
-        : (item && (item.label || item.name))
+        : (item && ((item as any).label || item.name))
 
     const value =
       !labelKey && typeof labelValue === "string"

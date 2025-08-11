@@ -1,18 +1,80 @@
 // API Configuration and Base Service
-import { cookies } from 'next/headers'
+import axios, { AxiosInstance, AxiosRequestConfig, AxiosResponse } from 'axios';
 
 // API Configuration
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rentalmanagementsystem-production.up.railway.app/api'
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
-// Types for common API responses
-export interface ApiResponse<T = any> {
-  success: boolean
-  data?: T
-  error?: {
-    code: string
-    message: string
-    details?: any
+// Create axios instance
+const api: AxiosInstance = axios.create({
+  baseURL: API_BASE_URL,
+  timeout: 30000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
+// Request interceptor to add auth token
+api.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('access_token');
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => {
+    return Promise.reject(error);
   }
+);
+
+// Response interceptor to handle token refresh
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+
+      try {
+        const refreshToken = localStorage.getItem('refresh_token');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh/`, {
+          refresh: refreshToken,
+        });
+
+        const { access } = response.data.data;
+        localStorage.setItem('access_token', access);
+
+        // Retry original request
+        originalRequest.headers.Authorization = `Bearer ${access}`;
+        return api(originalRequest);
+      } catch (refreshError) {
+        // Refresh failed, redirect to login
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        window.location.href = '/auth/login';
+        return Promise.reject(refreshError);
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
+
+// API Response Type
+export interface ApiResponse<T = any> {
+  success: boolean;
+  data?: T;
+  error?: {
+    code: string;
+    message: string;
+    details?: Record<string, string[]>;
+  };
+  message?: string;
 }
 
 export interface PaginatedResponse<T> {
@@ -101,7 +163,7 @@ export class ApiService {
             error: {
               code: response.status.toString(),
               message: `Server returned ${response.status}: ${response.statusText}`,
-              details: textResponse.substring(0, 500)
+              details: { response: [textResponse.substring(0, 500)] }
             }
           }
         }
@@ -112,7 +174,7 @@ export class ApiService {
           error: {
             code: 'INVALID_RESPONSE_FORMAT',
             message: 'Server returned non-JSON response',
-            details: textResponse.substring(0, 500)
+            details: { response: [textResponse.substring(0, 500)] }
           }
         }
       }
@@ -157,7 +219,7 @@ export class ApiService {
         error: {
           code: 'NETWORK_ERROR',
           message: error instanceof Error ? error.message : 'Network error occurred',
-          details: error
+          details: { error: [error instanceof Error ? error.message : String(error)] }
         }
       }
     }

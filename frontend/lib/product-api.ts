@@ -85,24 +85,6 @@ export interface ProductFilters {
   conditions?: string[]
 }
 
-export interface CreateProductRequest {
-  name: string
-  description: string
-  category: string
-  brand?: string
-  color?: string
-  condition?: string
-  image?: string
-  isRentable: boolean
-  basePrice: number
-  unit: 'hour' | 'day' | 'week' | 'month'
-  specifications?: Record<string, string>
-  deposit?: number
-  totalStock?: number
-}
-
-export interface UpdateProductRequest extends Partial<CreateProductRequest> {}
-
 export interface AvailabilityCheckRequest {
   startDate: string
   endDate: string
@@ -124,21 +106,6 @@ export class ProductApiService {
     availability: ProductAvailability
   }>> {
     return apiService.get(`/catalog/products/${id}/`)
-  }
-
-  // Create new product (Admin only)
-  async createProduct(productData: CreateProductRequest): Promise<ApiResponse<Product>> {
-    return apiService.post('/catalog/products/', productData)
-  }
-
-  // Update product (Admin only)
-  async updateProduct(id: string, productData: UpdateProductRequest): Promise<ApiResponse<Product>> {
-    return apiService.put(`/catalog/products/${id}/`, productData)
-  }
-
-  // Delete product (Admin only)
-  async deleteProduct(id: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/catalog/products/${id}/`)
   }
 
   // Check product availability
@@ -163,64 +130,9 @@ export class ProductApiService {
     return apiService.get(`/catalog/categories/${categoryId}/products/${queryString}`) as Promise<PaginatedResponse<Product>>
   }
 
-  // Create category (Admin only)
-  async createCategory(categoryData: Omit<ProductCategory, 'id'>): Promise<ApiResponse<ProductCategory>> {
-    return apiService.post('/catalog/categories/', categoryData)
-  }
-
-  // Update category (Admin only)
-  async updateCategory(id: string, categoryData: Partial<ProductCategory>): Promise<ApiResponse<ProductCategory>> {
-    return apiService.put(`/catalog/categories/${id}/`, categoryData)
-  }
-
-  // Delete category (Admin only)
-  async deleteCategory(id: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/catalog/categories/${id}/`)
-  }
-
   // Get product images
   async getProductImages(productId: string): Promise<ApiResponse<ProductImage[]>> {
     return apiService.get(`/catalog/product-images/?product=${productId}`)
-  }
-
-  // Upload product image (Admin only)
-  async uploadProductImage(productId: string, file: File, isPrimary = false): Promise<ApiResponse<ProductImage>> {
-    const formData = new FormData()
-    formData.append('product', productId)
-    formData.append('image', file)
-    formData.append('isPrimary', isPrimary.toString())
-
-    // Override default headers for file upload
-    const response = await fetch(`${apiService['baseUrl']}/upload/product-image/`, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${apiService['getAuthToken']()}`,
-      },
-      body: formData,
-    })
-
-    const data = await response.json()
-    
-    if (!response.ok) {
-      return {
-        success: false,
-        error: {
-          code: response.status.toString(),
-          message: data.message || response.statusText,
-          details: data
-        }
-      }
-    }
-
-    return {
-      success: true,
-      data
-    }
-  }
-
-  // Delete product image (Admin only)
-  async deleteProductImage(id: string): Promise<ApiResponse<void>> {
-    return apiService.delete(`/catalog/product-images/${id}/`)
   }
 
   // Get product items (individual units)
@@ -245,19 +157,6 @@ export class ProductApiService {
   } = {}): Promise<PaginatedResponse<ProductItem>> {
     const queryString = buildQueryString(filters)
     return apiService.get(`/catalog/product-items/available/${queryString}`) as Promise<PaginatedResponse<ProductItem>>
-  }
-
-  // Update product item status (Admin only)
-  async updateItemStatus(id: string, status: ProductItem['status'], notes?: string): Promise<ApiResponse<ProductItem>> {
-    return apiService.post(`/catalog/product-items/${id}/update_status/`, { status, notes })
-  }
-
-  // Bulk update products (Admin only)
-  async bulkUpdateProducts(updates: Array<{
-    id: string
-    data: UpdateProductRequest
-  }>): Promise<ApiResponse<{ updated: number; errors: any[] }>> {
-    return apiService.post('/catalog/products/bulk_update/', { updates })
   }
 
   // Search products (enhanced search with filters)
