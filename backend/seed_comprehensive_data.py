@@ -20,7 +20,7 @@ from apps.accounts.models import UserProfile, CustomerGroup
 from apps.catalog.models import ProductCategory, Product, ProductImage, ProductItem
 from apps.pricing.models import PriceList, PriceRule, LateFeeRule
 from apps.orders.models import RentalQuote, RentalOrder, RentalItem
-from apps.deliveries.models import DeliveryDocument, DocumentType
+from apps.deliveries.models import DeliveryDocument
 from apps.invoicing.models import Invoice, TaxRate
 from apps.payments.models import PaymentProvider, Payment
 from apps.notifications.models import NotificationTemplate
@@ -383,26 +383,6 @@ def create_sample_data():
                     end_datetime=timezone.now() + timedelta(days=14),
                     rental_unit='DAY',
                 )
-    
-    # 12. Create Document Types
-    print("📄 Creating document types...")
-    
-    document_types_data = [
-        ('DELIVERY_NOTE', 'Delivery Note'),
-        ('RETURN_RECEIPT', 'Return Receipt'),
-        ('PICKUP_SLIP', 'Pickup Slip'),
-        ('DAMAGE_REPORT', 'Damage Report'),
-    ]
-    
-    for code, name in document_types_data:
-        DocumentType.objects.get_or_create(
-            name=name,
-            defaults={
-                'code': code,
-                'description': f'{name} for rental operations',
-                'is_active': True,
-            }
-        )
     
     print("✅ Sample data creation completed!")
     print(f"   - {User.objects.count()} users created")
