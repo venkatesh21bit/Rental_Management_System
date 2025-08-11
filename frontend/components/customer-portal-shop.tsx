@@ -43,6 +43,10 @@ import {
   Plus
 } from "lucide-react"
 import { format, addDays, differenceInDays } from "date-fns"
+import { ProductDetail } from "./product-detail"
+import { CartPage } from "./cart-page"
+import { DeliveryPage } from "./delivery-page"
+import { PaymentPage } from "./payment-page"
 
 // Enhanced rental products data with more attributes
 const rentalProducts = [
@@ -199,13 +203,14 @@ export function CustomerPortalShop() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
   const [showFilters, setShowFilters] = useState(true)
   
-  // Cart and booking states
-  const [cart, setCart] = useState<any[]>([])
+  // Page navigation states
+  const [currentPage, setCurrentPage] = useState<"shop" | "product" | "cart" | "delivery" | "payment">("shop")
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
-  const [bookingDates, setBookingDates] = useState<{start: Date | undefined, end: Date | undefined}>({
-    start: undefined,
-    end: undefined
-  })
+  const [deliveryData, setDeliveryData] = useState<any>(null)
+  
+  // Cart and wishlist states
+  const [cart, setCart] = useState<any[]>([])
+  const [wishlist, setWishlist] = useState<any[]>([])
 
   // Extract unique values for filters
   const categories = Array.from(new Set(rentalProducts.map(p => p.category)))
@@ -267,8 +272,73 @@ export function CustomerPortalShop() {
     }
   }
 
-  const addToCart = (product: any) => {
-    setCart([...cart, { ...product, quantity: 1 }])
+  const addToCart = (product: any, quantity = 1, startDate?: Date, endDate?: Date) => {
+    const newItem = {
+      id: product.id + '_' + Date.now(), // Unique cart item ID
+      productId: product.id,
+      name: product.name,
+      pricing: product.pricing,
+      quantity,
+      startDate: startDate || new Date(),
+      endDate: endDate || addDays(new Date(), 7),
+      product // Keep full product data
+    }
+    setCart([...cart, newItem])
+  }
+
+  const addToWishlist = (product: any) => {
+    if (!wishlist.find(item => item.id === product.id)) {
+      setWishlist([...wishlist, product])
+    }
+  }
+
+  const updateCartQuantity = (itemId: string, quantity: number) => {
+    setCart(cart.map(item => 
+      item.id === itemId ? { ...item, quantity } : item
+    ))
+  }
+
+  const removeFromCart = (itemId: string) => {
+    setCart(cart.filter(item => item.id !== itemId))
+  }
+
+  const handleProductClick = (product: any) => {
+    setSelectedProduct(product)
+    setCurrentPage("product")
+  }
+
+  const handleCartClick = () => {
+    setCurrentPage("cart")
+  }
+
+  const handleProceedToCheckout = () => {
+    setCurrentPage("delivery")
+  }
+
+  const handleDeliveryConfirm = (data: any) => {
+    setDeliveryData(data)
+    setCurrentPage("payment")
+  }
+
+  const handlePaymentComplete = (paymentData: any) => {
+    // Handle successful payment
+    console.log("Payment completed:", paymentData)
+    alert("Order placed successfully!")
+    setCart([])
+    setCurrentPage("shop")
+  }
+
+  const handleBackToShop = () => {
+    setCurrentPage("shop")
+    setSelectedProduct(null)
+  }
+
+  const handleBackToCart = () => {
+    setCurrentPage("cart")
+  }
+
+  const handleBackToDelivery = () => {
+    setCurrentPage("delivery")
   }
 
   const getAvailabilityColor = (availability: string) => {
@@ -282,6 +352,51 @@ export function CustomerPortalShop() {
       default:
         return "outline"
     }
+  }
+
+  // Render different pages based on current state
+  if (currentPage === "product" && selectedProduct) {
+    return (
+      <ProductDetail
+        product={selectedProduct}
+        onAddToCart={addToCart}
+        onBack={handleBackToShop}
+        onAddToWishlist={addToWishlist}
+      />
+    )
+  }
+
+  if (currentPage === "cart") {
+    return (
+      <CartPage
+        items={cart}
+        onUpdateQuantity={updateCartQuantity}
+        onRemoveItem={removeFromCart}
+        onProceedToCheckout={handleProceedToCheckout}
+        onBack={handleBackToShop}
+      />
+    )
+  }
+
+  if (currentPage === "delivery") {
+    return (
+      <DeliveryPage
+        items={cart}
+        onBack={handleBackToCart}
+        onContinue={handleDeliveryConfirm}
+      />
+    )
+  }
+
+  if (currentPage === "payment") {
+    return (
+      <PaymentPage
+        items={cart}
+        deliveryData={deliveryData}
+        onBack={handleBackToDelivery}
+        onPayNow={handlePaymentComplete}
+      />
+    )
   }
 
   return (
@@ -298,7 +413,7 @@ export function CustomerPortalShop() {
               <Badge variant="outline" className="px-3 py-1">
                 {filteredProducts.length} Products
               </Badge>
-              <Button variant="outline" size="sm">
+              <Button variant="outline" size="sm" onClick={handleCartClick}>
                 <ShoppingCart className="h-4 w-4 mr-2" />
                 Cart ({cart.length})
               </Button>
@@ -539,6 +654,10 @@ export function CustomerPortalShop() {
                       </Badge>
 
                       <div className="space-y-2">
+                        <Button size="sm" className="w-full" onClick={() => handleProductClick(product)}>
+                          <Eye className="h-3 w-3 mr-1" />
+                          View Details
+                        </Button>
                         <Button size="sm" className="w-full" onClick={() => addToCart(product)}>
                           <Plus className="h-3 w-3 mr-1" />
                           Add to Cart
