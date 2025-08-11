@@ -13,12 +13,12 @@ from django.utils.http import urlsafe_base64_encode, urlsafe_base64_decode
 from django.utils import timezone
 from datetime import datetime, timedelta
 
-from .models import UserProfile, CustomerGroup
+from .models import UserProfile, CustomerGroup, Address
 from .serializers import (
     RegisterSerializer, LoginSerializer, UserSerializer, UserProfileSerializer,
     ChangePasswordSerializer, PasswordResetSerializer, PasswordResetConfirmSerializer,
     RefreshTokenSerializer, NotificationSettingsSerializer, CustomerStatsSerializer,
-    CustomerGroupSerializer
+    CustomerGroupSerializer, AddressSerializer
 )
 
 User = get_user_model()
@@ -562,3 +562,41 @@ class CustomerGroupViewSet(viewsets.ModelViewSet):
         if self.action in ['list', 'retrieve']:
             return [IsAuthenticated()]
         return [IsAuthenticated()]  # Add admin check in production
+
+
+class AddressViewSet(viewsets.ModelViewSet):
+    """Address management for users"""
+    serializer_class = AddressSerializer
+    permission_classes = [IsAuthenticated]
+    
+    def get_queryset(self):
+        return Address.objects.filter(user=self.request.user, is_active=True)
+    
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
+    
+    def perform_destroy(self, instance):
+        # Soft delete
+        instance.is_active = False
+        instance.save()
+    
+    @action(detail=True, methods=['post'])
+    def set_default(self, request, pk=None):
+        """Set address as default"""
+        address = self.get_object()
+        
+        # Remove default from other addresses of same type
+        Address.objects.filter(
+            user=request.user,
+            type=address.type,
+            is_default=True
+        ).update(is_default=False)
+        
+        # Set this as default
+        address.is_default = True
+        address.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Address set as default'
+        })

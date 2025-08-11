@@ -1,11 +1,16 @@
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+router = DefaultRouter()
+router.register(r'invoices', views.InvoiceViewSet, basename='invoice')
+router.register(r'credit-notes', views.CreditNoteViewSet, basename='creditnote')
+router.register(r'payment-terms', views.PaymentTermViewSet, basename='paymentterm')
+router.register(r'tax-rates', views.TaxRateViewSet, basename='taxrate')
+router.register(r'templates', views.InvoiceTemplateViewSet, basename='invoicetemplate')
 
 app_name = 'invoicing'
 
 urlpatterns = [
-    # Invoice URLs will be added here when views are implemented
-    # path('invoices/', InvoiceListView.as_view(), name='invoices'),
-    # path('credit-notes/', CreditNoteListView.as_view(), name='credit-notes'),
-    # path('templates/', InvoiceTemplateListView.as_view(), name='templates'),
-    # path('payment-terms/', PaymentTermListView.as_view(), name='payment-terms'),
+    path('', include(router.urls)),
 ]

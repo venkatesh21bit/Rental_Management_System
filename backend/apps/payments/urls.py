@@ -1,12 +1,25 @@
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    PaymentViewSet, PaymentProviderViewSet, PaymentRefundViewSet,
+    PaymentLinkViewSet, BankAccountViewSet, WebhookEventViewSet
+)
 
 app_name = 'payments'
 
-urlpatterns = [
-    # Payment URLs will be added here when views are implemented
-    # path('payments/', PaymentListView.as_view(), name='payments'),
-    # path('refunds/', PaymentRefundListView.as_view(), name='refunds'),
-    # path('links/', PaymentLinkListView.as_view(), name='payment-links'),
-    # path('providers/', PaymentProviderListView.as_view(), name='providers'),
-    # path('webhooks/', WebhookEventListView.as_view(), name='webhooks'),
+router = DefaultRouter()
+router.register(r'payments', PaymentViewSet, basename='payment')
+router.register(r'providers', PaymentProviderViewSet, basename='payment-provider')
+router.register(r'refunds', PaymentRefundViewSet, basename='payment-refund')
+router.register(r'payment-links', PaymentLinkViewSet, basename='payment-link')
+router.register(r'bank-accounts', BankAccountViewSet, basename='bank-account')
+router.register(r'webhooks', WebhookEventViewSet, basename='webhook-event')
+
+# Additional specific endpoints
+additional_patterns = [
+    path('webhook/', WebhookEventViewSet.as_view({'post': 'create'}), name='webhook'),
 ]
+
+urlpatterns = [
+    path('', include(router.urls)),
+] + additional_patterns

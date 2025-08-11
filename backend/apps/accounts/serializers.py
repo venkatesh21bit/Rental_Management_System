@@ -3,7 +3,7 @@ from django.contrib.auth import get_user_model, authenticate
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError
 from rest_framework_simplejwt.tokens import RefreshToken
-from .models import UserProfile, CustomerGroup
+from .models import UserProfile, CustomerGroup, Address
 
 User = get_user_model()
 
@@ -195,3 +195,22 @@ class CustomerStatsSerializer(serializers.Serializer):
     average_order_value = serializers.DecimalField(max_digits=12, decimal_places=2)
     last_order_date = serializers.DateTimeField(allow_null=True)
     customer_since = serializers.DateTimeField()
+
+
+class AddressSerializer(serializers.ModelSerializer):
+    full_name = serializers.ReadOnlyField()
+    full_address = serializers.ReadOnlyField()
+    
+    class Meta:
+        model = Address
+        fields = [
+            'id', 'type', 'first_name', 'last_name', 'company',
+            'address_line_1', 'address_line_2', 'city', 'state',
+            'postal_code', 'country', 'phone', 'is_default',
+            'is_active', 'full_name', 'full_address', 'created_at'
+        ]
+        read_only_fields = ['id', 'created_at', 'full_name', 'full_address']
+    
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)

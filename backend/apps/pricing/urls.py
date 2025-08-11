@@ -5,12 +5,14 @@ from . import views
 router = DefaultRouter()
 router.register(r'pricelists', views.PriceListViewSet, basename='pricelist')
 router.register(r'pricing-rules', views.PricingRuleViewSet, basename='pricingrule')
-router.register(r'seasonal-pricing', views.SeasonalPricingViewSet, basename='seasonalpricing')
-router.register(r'volume-discounts', views.VolumeDiscountViewSet, basename='volumediscount')
-router.register(r'loyalty-discounts', views.LoyaltyDiscountViewSet, basename='loyaltydiscount')
 router.register(r'late-fees', views.LateFeeViewSet, basename='latefee')
 router.register(r'pricing', views.PricingViewSet, basename='pricing')
 
+# Additional specific endpoints
+additional_patterns = [
+    path('pricelist/price/', views.PricingViewSet.as_view({'get': 'calculate', 'post': 'calculate'}), name='price-calculator'),
+]
+
 urlpatterns = [
     path('', include(router.urls)),
-]
+] + additional_patterns

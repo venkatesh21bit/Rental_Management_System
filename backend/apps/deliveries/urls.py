@@ -1,11 +1,15 @@
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from . import views
+
+router = DefaultRouter()
+router.register(r'delivery_docs', views.DeliveryDocumentViewSet, basename='deliverydocument')
+router.register(r'return_docs', views.ReturnDocumentViewSet, basename='returndocument')
+router.register(r'stock-movements', views.StockMovementViewSet, basename='stockmovement')
+router.register(r'routes', views.DeliveryRouteViewSet, basename='deliveryroute')
 
 app_name = 'deliveries'
 
 urlpatterns = [
-    # Delivery URLs will be added here when views are implemented
-    # path('documents/', DeliveryDocumentListView.as_view(), name='delivery-documents'),
-    # path('routes/', DeliveryRouteListView.as_view(), name='delivery-routes'),
-    # path('returns/', ReturnDocumentListView.as_view(), name='return-documents'),
-    # path('stock-movements/', StockMovementListView.as_view(), name='stock-movements'),
+    path('', include(router.urls)),
 ]

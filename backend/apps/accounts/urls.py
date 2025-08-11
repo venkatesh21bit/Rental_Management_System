@@ -10,11 +10,16 @@ auth_urlpatterns = [
     path('auth/refresh/', views.refresh_token, name='auth-refresh'),
     path('auth/forgot-password/', views.forgot_password, name='auth-forgot-password'),
     path('auth/reset-password/', views.reset_password, name='auth-reset-password'),
+    
+    # User profile endpoints
+    path('users/me/', views.UserProfileViewSet.as_view({'get': 'me', 'patch': 'update_profile'}), name='users-me'),
+    path('users/<int:pk>/', views.UserProfileViewSet.as_view({'get': 'retrieve'}), name='users-detail'),
 ]
 
 # Router for ViewSets
 router = DefaultRouter()
 router.register(r'profile', views.UserProfileViewSet, basename='userprofile')
+router.register(r'addresses', views.AddressViewSet, basename='address')
 router.register(r'customers', views.CustomerViewSet, basename='customer')
 router.register(r'customer-groups', views.CustomerGroupViewSet, basename='customergroup')
 
