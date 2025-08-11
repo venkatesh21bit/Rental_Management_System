@@ -256,7 +256,7 @@ def create_sample_data():
         defaults={
             'description': 'Standard rental pricing for all customers',
             'is_active': True,
-            'effective_from': timezone.now(),
+            'valid_from': timezone.now().date(),
         }
     )
     
@@ -266,7 +266,7 @@ def create_sample_data():
         defaults={
             'description': 'Special pricing for VIP customers',
             'is_active': True,
-            'effective_from': timezone.now(),
+            'valid_from': timezone.now().date(),
         }
     )
     
