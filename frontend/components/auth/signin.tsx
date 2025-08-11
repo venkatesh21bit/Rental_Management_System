@@ -339,15 +339,15 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
               <div>
                 <Badge variant="outline" className="mb-2">Customer</Badge>
                 <div className="space-y-1">
-                  <div>Email: admin@admin.com</div>
-                  <div>Password: admin</div>
+                  <div>Email: venkatesh.k21062005@gmail.com</div>
+                  <div>Password: venkat*2005</div>
                 </div>
               </div>
               <div>
                 <Badge variant="outline" className="mb-2">Admin</Badge>
                 <div className="space-y-1">
-                  <div>Email: admin@admin.com</div>
-                  <div>Password: admin</div>
+                  <div>Email: venkatesh.k21062005@gmail.com</div>
+                  <div>Password: venkat*2005</div>
                 </div>
               </div>
             </div>

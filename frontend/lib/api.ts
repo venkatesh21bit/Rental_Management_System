@@ -77,6 +77,16 @@ export class ApiService {
       const data = await response.json()
 
       if (!response.ok) {
+        // Handle 401 unauthorized - redirect to home page
+        if (response.status === 401) {
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('authToken')
+            localStorage.removeItem('refreshToken')
+            localStorage.removeItem('user')
+            window.location.href = '/'
+          }
+        }
+        
         return {
           success: false,
           error: {
@@ -87,9 +97,17 @@ export class ApiService {
         }
       }
 
-      return {
-        success: true,
-        data
+      // Backend returns {success: true, data: {...}} format
+      if (data.success && data.data) {
+        return {
+          success: true,
+          data: data.data
+        }
+      } else {
+        return {
+          success: true,
+          data
+        }
       }
     } catch (error) {
       return {

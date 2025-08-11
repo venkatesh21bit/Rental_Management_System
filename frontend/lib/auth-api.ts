@@ -50,7 +50,8 @@ export interface RegisterRequest {
 export interface LoginResponse {
   user: User
   token: string
-  refreshToken: string
+  refreshToken?: string
+  refresh_token?: string  // Backend sends this format
 }
 
 export interface ForgotPasswordRequest {
@@ -79,9 +80,12 @@ export class AuthApiService {
     const response = await apiService.post<LoginResponse>('/auth/login/', credentials)
     
     if (response.success && response.data) {
-      // Store tokens in localStorage
+      // Store tokens in localStorage - handle both refreshToken and refresh_token
+      const refreshToken = response.data.refreshToken || response.data.refresh_token
       localStorage.setItem('authToken', response.data.token)
-      localStorage.setItem('refreshToken', response.data.refreshToken)
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken)
+      }
       localStorage.setItem('user', JSON.stringify(response.data.user))
     }
     
@@ -93,9 +97,12 @@ export class AuthApiService {
     const response = await apiService.post<LoginResponse>('/auth/register/', userData)
     
     if (response.success && response.data) {
-      // Store tokens in localStorage
+      // Store tokens in localStorage - handle both refreshToken and refresh_token
+      const refreshToken = response.data.refreshToken || response.data.refresh_token
       localStorage.setItem('authToken', response.data.token)
-      localStorage.setItem('refreshToken', response.data.refreshToken)
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken)
+      }
       localStorage.setItem('user', JSON.stringify(response.data.user))
     }
     
