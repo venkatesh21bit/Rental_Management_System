@@ -15,9 +15,6 @@ import os
 import dj_database_url
 from decouple import config
 
-# Import production security settings
-from .security_settings import *
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -53,13 +50,6 @@ INSTALLED_APPS = [
     'django_celery_beat',
     'django_celery_results',
     'django_filters',
-    
-    # Production enhancements
-    'csp',  # Content Security Policy
-    'django_ratelimit',  # Rate limiting
-    'health_check',  # Health checks
-    'drf_spectacular',  # API documentation
-    'debug_toolbar',  # Debug toolbar (for development)
     'django_extensions',
     
     # Local apps
@@ -78,13 +68,10 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
-    'csp.middleware.CSPMiddleware',  # Content Security Policy
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'debug_toolbar.middleware.DebugToolbarMiddleware',  # Debug toolbar (dev only)
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
-    'django_ratelimit.middleware.RatelimitMiddleware',  # Rate limiting
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
@@ -123,12 +110,16 @@ DATABASES = {
     )
 }
 
-# Fallback to SQLite for local development if DATABASE_URL is not set
+# Fallback to local PostgreSQL if DATABASE_URL is not set
 if not os.environ.get('DATABASE_URL'):
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': config('DB_NAME', default='odoo_hackathon_db'),
+            'USER': config('DB_USER', default='postgres'),
+            'PASSWORD': config('DB_PASSWORD', default=''),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='5432'),
         }
     }
 
@@ -197,19 +188,6 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.MultiPartParser',
     ],
-    'DEFAULT_THROTTLE_CLASSES': [
-        'rest_framework.throttling.AnonRateThrottle',
-        'rest_framework.throttling.UserRateThrottle'
-    ],
-    'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',
-        'user': '1000/hour',
-        'login': '5/minute',
-        'password_reset': '3/hour',
-    },
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 # JWT Settings
@@ -252,19 +230,45 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Next.js default development server
     "http://127.0.0.1:3000",
     "https://rentalmanagementsystem-production.up.railway.app",  # Railway production URL
-    "https://wholesome-endurance-production.up.railway.app",  # Frontend Railway URL
+]
+
+# Allow all localhost origins for development
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^http://localhost:\d+$",  # Allow any port on localhost
+    r"^http://127\.0\.0\.1:\d+$",  # Allow any port on 127.0.0.1
 ]
 
 # CSRF trusted origins for Railway deployment
 CSRF_TRUSTED_ORIGINS = [
     "https://rentalmanagementsystem-production.up.railway.app",
-    "https://wholesome-endurance-production.up.railway.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 # Additional CORS settings for development
-CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=True, cast=bool)
+CORS_ALLOW_ALL_ORIGINS = config('CORS_ALLOW_ALL_ORIGINS', default=False, cast=bool)
+
+# CORS headers configuration
+CORS_ALLOW_HEADERS = [
+    'accept',
+    'accept-encoding',
+    'authorization',
+    'content-type',
+    'dnt',
+    'origin',
+    'user-agent',
+    'x-csrftoken',
+    'x-requested-with',
+]
+
+CORS_ALLOW_METHODS = [
+    'DELETE',
+    'GET',
+    'OPTIONS',
+    'PATCH',
+    'POST',
+    'PUT',
+]
 
 # WhiteNoise configuration
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
@@ -314,172 +318,3 @@ if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB
-
-# =================== PRODUCTION ENHANCEMENTS ===================
-
-# Redis Cache Configuration
-CACHES = {
-    'default': {
-        'BACKEND': 'django_redis.cache.RedisCache',
-        'LOCATION': config('REDIS_URL', default='redis://127.0.0.1:6379/1'),
-        'OPTIONS': {
-            'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-            'CONNECTION_POOL_KWARGS': {
-                'max_connections': 50,
-                'retry_on_timeout': True,
-            },
-            'SERIALIZER': 'django_redis.serializers.json.JSONSerializer',
-        },
-        'KEY_PREFIX': 'rental_mgmt',
-        'TIMEOUT': 300,  # 5 minutes default
-    }
-}
-
-# Content Security Policy
-CSP_DEFAULT_SRC = ("'self'",)
-CSP_SCRIPT_SRC = ("'self'", "'unsafe-inline'", "https://wholesome-endurance-production.up.railway.app")
-CSP_STYLE_SRC = ("'self'", "'unsafe-inline'")
-CSP_IMG_SRC = ("'self'", "data:", "https:")
-CSP_FONT_SRC = ("'self'",)
-
-# DRF Spectacular (API Documentation)
-SPECTACULAR_SETTINGS = {
-    'TITLE': 'Rental Management System API',
-    'DESCRIPTION': 'Industry-grade rental management system with comprehensive features',
-    'VERSION': '1.0.0',
-    'SERVE_INCLUDE_SCHEMA': False,
-    'SCHEMA_PATH_PREFIX': '/api/',
-}
-
-# Debug Toolbar (Development only)
-if DEBUG:
-    INTERNAL_IPS = [
-        '127.0.0.1',
-        'localhost',
-    ]
-
-# Health Check Configuration
-HEALTH_CHECK = {
-    'DISK_USAGE_MAX': 90,  # percent
-    'MEMORY_MIN': 100,    # in MB
-}
-
-# Logging Configuration
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '[{asctime}] {levelname} [{name}:{lineno}] {process:d} {thread:d} {message}',
-            'style': '{',
-        },
-        'simple': {
-            'format': '[{asctime}] {levelname} {message}',
-            'style': '{',
-        },
-    },
-    'handlers': {
-        'console': {
-            'level': 'INFO',
-            'class': 'logging.StreamHandler',
-            'formatter': 'simple',
-        },
-        'file': {
-            'level': 'INFO',
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': 'logs/django.log',
-            'maxBytes': 1024*1024*15,  # 15MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-        },
-    },
-    'loggers': {
-        'django': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console'],
-            'level': 'INFO',
-            'propagate': False,
-        },
-        'apps': {
-            'handlers': ['console', 'file'] if not DEBUG else ['console'],
-            'level': 'DEBUG' if DEBUG else 'INFO',
-            'propagate': False,
-        },
-    },
-    'root': {
-        'level': 'INFO',
-        'handlers': ['console'],
-    },
-}
-
-# Create logs directory if it doesn't exist
-import os
-log_dir = os.path.join(BASE_DIR, 'logs')
-if not os.path.exists(log_dir):
-    os.makedirs(log_dir)
-
-# Industry-Grade Payment Gateway Configuration
-PAYMENT_GATEWAYS = {
-    'STRIPE': {
-        'ENABLED': True,
-        'PUBLISHABLE_KEY': os.environ.get('STRIPE_PUBLISHABLE_KEY', ''),
-        'SECRET_KEY': os.environ.get('STRIPE_SECRET_KEY', ''),
-        'WEBHOOK_SECRET': os.environ.get('STRIPE_WEBHOOK_SECRET', ''),
-        'API_VERSION': '2023-10-16',
-        'CURRENCY': 'USD',
-        'CAPTURE_METHOD': 'automatic',
-        'CONFIRMATION_METHOD': 'automatic',
-        'PAYMENT_METHODS': ['card', 'klarna', 'afterpay_clearpay', 'affirm'],
-        'SUPPORTED_CURRENCIES': ['USD', 'EUR', 'GBP', 'CAD', 'AUD', 'JPY'],
-    },
-    'RAZORPAY': {
-        'ENABLED': False,  # Can be enabled when needed
-        'KEY_ID': os.environ.get('RAZORPAY_KEY_ID', ''),
-        'KEY_SECRET': os.environ.get('RAZORPAY_KEY_SECRET', ''),
-        'WEBHOOK_SECRET': os.environ.get('RAZORPAY_WEBHOOK_SECRET', ''),
-        'CURRENCY': 'INR',
-        'SUPPORTED_CURRENCIES': ['INR'],
-    }
-}
-
-# Stripe Configuration (Legacy - for backward compatibility)
-STRIPE_PUBLISHABLE_KEY = PAYMENT_GATEWAYS['STRIPE']['PUBLISHABLE_KEY']
-STRIPE_SECRET_KEY = PAYMENT_GATEWAYS['STRIPE']['SECRET_KEY']
-STRIPE_WEBHOOK_SECRET = PAYMENT_GATEWAYS['STRIPE']['WEBHOOK_SECRET']
-
-# Payment Processing Configuration
-PAYMENT_CONFIG = {
-    'DEFAULT_CURRENCY': 'USD',
-    'ENABLE_REFUNDS': True,
-    'AUTO_CAPTURE': True,
-    'PAYMENT_TIMEOUT': 3600,  # 1 hour in seconds
-    'MAX_PAYMENT_AMOUNT': 999999.99,
-    'MIN_PAYMENT_AMOUNT': 0.50,
-    'ENABLE_PAYMENT_ANALYTICS': True,
-    'WEBHOOK_RETRY_ATTEMPTS': 3,
-    'WEBHOOK_TIMEOUT': 30,  # seconds
-    'ENABLE_FRAUD_DETECTION': True,
-    'PAYMENT_LINK_EXPIRY_HOURS': 24,
-}
-
-# Email Configuration for Payment Notifications
-EMAIL_TEMPLATES = {
-    'PAYMENT_SUCCESS': 'payments/payment_success.html',
-    'PAYMENT_FAILED': 'payments/payment_failed.html',
-    'REFUND_PROCESSED': 'payments/refund_confirmation.html',
-    'DISPUTE_NOTIFICATION': 'payments/dispute_notification.html',
-}
-
-# Admin Email for Critical Payment Notifications
-ADMIN_EMAIL = os.environ.get('ADMIN_EMAIL', 'admin@example.com')
-
-# Security Configuration for Payment Processing
-PAYMENT_SECURITY = {
-    'ENABLE_IP_WHITELIST': False,
-    'ALLOWED_IPS': [],
-    'ENABLE_RATE_LIMITING': True,
-    'RATE_LIMIT_PER_MINUTE': 60,
-    'ENABLE_CSRF_PROTECTION': True,
-    'REQUIRE_HTTPS': not DEBUG,
-    'SESSION_COOKIE_SECURE': not DEBUG,
-    'CSRF_COOKIE_SECURE': not DEBUG,
-}
