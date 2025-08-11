@@ -1,0 +1,176 @@
+// API Configuration and Base Service
+import { cookies } from 'next/headers'
+
+// API Configuration
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://rentalmanagementsystem-production.up.railway.app/api'
+
+// Types for common API responses
+export interface ApiResponse<T = any> {
+  success: boolean
+  data?: T
+  error?: {
+    code: string
+    message: string
+    details?: any
+  }
+}
+
+export interface PaginatedResponse<T> {
+  success: boolean
+  data: {
+    items: T[]
+    total: number
+    page: number
+    totalPages: number
+    hasNext: boolean
+    hasPrev: boolean
+  }
+}
+
+// Request configuration interface
+interface RequestConfig {
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'
+  body?: any
+  headers?: Record<string, string>
+  token?: string
+}
+
+// Base API Service Class
+export class ApiService {
+  private baseUrl: string
+  private defaultHeaders: Record<string, string>
+
+  constructor(baseUrl: string = API_BASE_URL) {
+    this.baseUrl = baseUrl
+    this.defaultHeaders = {
+      'Content-Type': 'application/json',
+    }
+  }
+
+  // Get auth token from localStorage or cookies
+  private getAuthToken(): string | null {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('authToken')
+    }
+    return null
+  }
+
+  // Make HTTP request with proper error handling
+  async request<T>(endpoint: string, config: RequestConfig): Promise<ApiResponse<T>> {
+    const url = `${this.baseUrl}${endpoint}`
+    const token = config.token || this.getAuthToken()
+    
+    const headers = {
+      ...this.defaultHeaders,
+      ...config.headers,
+      ...(token && { Authorization: `Bearer ${token}` }),
+    }
+
+    const requestConfig: RequestInit = {
+      method: config.method,
+      headers,
+      ...(config.body && { body: JSON.stringify(config.body) }),
+    }
+
+    try {
+      const response = await fetch(url, requestConfig)
+      const data = await response.json()
+
+      if (!response.ok) {
+        return {
+          success: false,
+          error: {
+            code: response.status.toString(),
+            message: data.message || response.statusText,
+            details: data.error || data
+          }
+        }
+      }
+
+      return {
+        success: true,
+        data
+      }
+    } catch (error) {
+      return {
+        success: false,
+        error: {
+          code: 'NETWORK_ERROR',
+          message: error instanceof Error ? error.message : 'Network error occurred',
+          details: error
+        }
+      }
+    }
+  }
+
+  // HTTP method helpers
+  async get<T>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'GET', token })
+  }
+
+  async post<T>(endpoint: string, body?: any, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'POST', body, token })
+  }
+
+  async put<T>(endpoint: string, body?: any, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'PUT', body, token })
+  }
+
+  async delete<T>(endpoint: string, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'DELETE', token })
+  }
+
+  async patch<T>(endpoint: string, body?: any, token?: string): Promise<ApiResponse<T>> {
+    return this.request<T>(endpoint, { method: 'PATCH', body, token })
+  }
+}
+
+// Create a singleton instance
+export const apiService = new ApiService()
+
+// Helper function to build query strings
+export function buildQueryString(params: Record<string, any>): string {
+  const filtered = Object.entries(params).filter(([_, value]) => 
+    value !== undefined && value !== null && value !== ''
+  )
+  
+  if (filtered.length === 0) return ''
+  
+  const searchParams = new URLSearchParams()
+  filtered.forEach(([key, value]) => {
+    if (Array.isArray(value)) {
+      value.forEach(v => searchParams.append(key, v.toString()))
+    } else {
+      searchParams.append(key, value.toString())
+    }
+  })
+  
+  return `?${searchParams.toString()}`
+}
+
+// Helper function to handle API errors
+export function handleApiError(error: ApiResponse<any>['error'], defaultMessage = 'An error occurred') {
+  if (!error) return defaultMessage
+  
+  switch (error.code) {
+    case '401':
+      // Handle unauthorized - redirect to login
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('authToken')
+        window.location.href = '/login'
+      }
+      return 'Please log in to continue'
+    case '403':
+      return 'You don\'t have permission to perform this action'
+    case '404':
+      return 'The requested resource was not found'
+    case '422':
+      return error.details?.message || 'Invalid data provided'
+    case 'NETWORK_ERROR':
+      return 'Network error. Please check your connection and try again.'
+    default:
+      return error.message || defaultMessage
+  }
+}
+
+export default apiService

@@ -14,7 +14,7 @@ dist/
 downloads/
 eggs/
 .eggs/
-lib/
+# lib/  # Commented out - too broad, ignores frontend lib directory
 lib64/
 parts/
 sdist/
@@ -186,6 +186,13 @@ public
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+# Python specific lib directories (but not frontend lib/)
+backend/lib/
+backend/.venv/lib/
+.venv/lib/
+venv/lib/
+env/lib/
 
 # Django specific
 *.pyc
