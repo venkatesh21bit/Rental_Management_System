@@ -1,0 +1,1303 @@
+{
+  "info": {
+    "name": "Rental Management System - Complete API Collection",
+    "description": "Comprehensive API collection for the Rental Management System with 150+ endpoints covering authentication, product management, orders, payments, deliveries, and more.",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Auto-refresh token if needed",
+          "const refreshToken = pm.environment.get('refresh_token');",
+          "const accessToken = pm.environment.get('access_token');",
+          "",
+          "if (refreshToken && !accessToken) {",
+          "    pm.sendRequest({",
+          "        url: pm.environment.get('base_url') + '/auth/refresh/',",
+          "        method: 'POST',",
+          "        header: {",
+          "            'Content-Type': 'application/json',",
+          "        },",
+          "        body: {",
+          "            mode: 'raw',",
+          "            raw: JSON.stringify({",
+          "                'refresh': refreshToken",
+          "            })",
+          "        }",
+          "    }, function (err, response) {",
+          "        if (response && response.code === 200) {",
+          "            const data = response.json();",
+          "            pm.environment.set('access_token', data.data.access);",
+          "        }",
+          "    });",
+          "}"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000/api",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Response has success property', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "});",
+                  "",
+                  "pm.test('Response contains tokens', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('tokens');",
+                  "    pm.expect(jsonData.data.tokens).to.have.property('access');",
+                  "    pm.expect(jsonData.data.tokens).to.have.property('refresh');",
+                  "});",
+                  "",
+                  "// Save tokens for future requests",
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.data.tokens.access);",
+                  "    pm.environment.set('refresh_token', jsonData.data.tokens.refresh);",
+                  "    pm.environment.set('user_id', jsonData.data.user.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePassword123!\",\n  \"confirm_password\": \"SecurePassword123!\",\n  \"first_name\": \"John\",\n  \"last_name\": \"Doe\",\n  \"phone_number\": \"+1234567890\",\n  \"company_name\": \"ABC Corp\",\n  \"user_type\": \"BUSINESS\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register", ""]
+            }
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Login successful', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('tokens');",
+                  "});",
+                  "",
+                  "// Save tokens",
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('access_token', jsonData.data.tokens.access);",
+                  "    pm.environment.set('refresh_token', jsonData.data.tokens.refresh);",
+                  "    pm.environment.set('user_id', jsonData.data.user.id);",
+                  "    pm.environment.set('is_staff', jsonData.data.user.is_staff);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\",\n  \"password\": \"SecurePassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login", ""]
+            }
+          }
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"refresh\": \"{{refresh_token}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/refresh/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "refresh", ""]
+            }
+          }
+        },
+        {
+          "name": "Forgot Password",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"john.doe@example.com\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/forgot-password/",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "forgot-password", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👤 User Management",
+      "item": [
+        {
+          "name": "Get Current User Profile",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Profile data exists', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('email');",
+                  "    pm.expect(jsonData.data).to.have.property('first_name');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile/me/",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "me", ""]
+            }
+          }
+        },
+        {
+          "name": "Update User Profile",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"first_name\": \"John Updated\",\n  \"phone_number\": \"+1987654321\",\n  \"company_name\": \"Updated Corp\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/me/",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "me", ""]
+            }
+          }
+        },
+        {
+          "name": "Change Password",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"current_password\": \"SecurePassword123!\",\n  \"new_password\": \"NewPassword123!\",\n  \"confirm_password\": \"NewPassword123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/profile/change_password/",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "change_password", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Customer Statistics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/profile/stats/",
+              "host": ["{{base_url}}"],
+              "path": ["profile", "stats", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📦 Product Catalog",
+      "item": [
+        {
+          "name": "Get All Products",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 200', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "});",
+                  "",
+                  "pm.test('Products list exists', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('results');",
+                  "    pm.expect(jsonData.data.results).to.be.an('array');",
+                  "});",
+                  "",
+                  "// Save first product ID for other tests",
+                  "if (pm.response.code === 200) {",
+                  "    const jsonData = pm.response.json();",
+                  "    if (jsonData.data.results.length > 0) {",
+                  "        pm.environment.set('product_id', jsonData.data.results[0].id);",
+                  "    }",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/catalog/products/?page=1&limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["catalog", "products", ""],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Product",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/catalog/products/{{product_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["catalog", "products", "{{product_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "Check Product Availability",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/catalog/products/{{product_id}}/availability/?start_date=2025-01-15&end_date=2025-01-20&quantity=2",
+              "host": ["{{base_url}}"],
+              "path": ["catalog", "products", "{{product_id}}", "availability", ""],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-01-15"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-01-20"
+                },
+                {
+                  "key": "quantity",
+                  "value": "2"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Search Products",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/catalog/products/?search=excavator&category=1&min_price=100&max_price=1000",
+              "host": ["{{base_url}}"],
+              "path": ["catalog", "products", ""],
+              "query": [
+                {
+                  "key": "search",
+                  "value": "excavator"
+                },
+                {
+                  "key": "category",
+                  "value": "1"
+                },
+                {
+                  "key": "min_price",
+                  "value": "100"
+                },
+                {
+                  "key": "max_price",
+                  "value": "1000"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Product Categories",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/catalog/categories/",
+              "host": ["{{base_url}}"],
+              "path": ["catalog", "categories", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Order Management",
+      "item": [
+        {
+          "name": "Create Rental Quote",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status code is 201', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "});",
+                  "",
+                  "pm.test('Quote created successfully', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "    pm.expect(jsonData.data).to.have.property('id');",
+                  "});",
+                  "",
+                  "// Save quote ID",
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('quote_id', jsonData.data.id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"items\": [\n    {\n      \"product_id\": {{product_id}},\n      \"quantity\": 2,\n      \"start_date\": \"2025-01-15\",\n      \"end_date\": \"2025-01-20\"\n    }\n  ],\n  \"delivery_address\": {\n    \"street_address\": \"Construction Site A\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postal_code\": \"10001\"\n  },\n  \"special_instructions\": \"Please deliver before 8 AM\",\n  \"delivery_required\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/quotes/",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "quotes", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Rental Quotes",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/quotes/",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "quotes", ""]
+            }
+          }
+        },
+        {
+          "name": "Convert Quote to Order",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Quote converted successfully', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData).to.have.property('success', true);",
+                  "});",
+                  "",
+                  "// Save order ID",
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('order_id', jsonData.data.order_id);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_method\": \"STRIPE\",\n  \"billing_address\": {\n    \"street_address\": \"123 Main St\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postal_code\": \"10001\"\n  },\n  \"terms_accepted\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/orders/quotes/{{quote_id}}/convert_to_order/",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "quotes", "{{quote_id}}", "convert_to_order", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Rental Orders",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/orders/?status=ACTIVE",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "orders", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "ACTIVE"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Single Order",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/orders/orders/{{order_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["orders", "orders", "{{order_id}}", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💰 Pricing",
+      "item": [
+        {
+          "name": "Calculate Pricing",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"customer_id\": {{user_id}},\n  \"items\": [\n    {\n      \"product_id\": {{product_id}},\n      \"quantity\": 2,\n      \"start_date\": \"2025-01-15\",\n      \"end_date\": \"2025-01-20\"\n    }\n  ],\n  \"delivery_required\": true,\n  \"delivery_distance\": 25.5\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pricing/calculate/",
+              "host": ["{{base_url}}"],
+              "path": ["pricing", "calculate", ""]
+            }
+          }
+        },
+        {
+          "name": "Calculate Late Fee",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"actual_return_date\": \"2025-01-22T10:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/pricing/calculate_late_fee/",
+              "host": ["{{base_url}}"],
+              "path": ["pricing", "calculate_late_fee", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Customer Discounts",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/pricing/customer_discounts/",
+              "host": ["{{base_url}}"],
+              "path": ["pricing", "customer_discounts", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Payments",
+      "item": [
+        {
+          "name": "Create Payment Intent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Payment intent created', function () {",
+                  "    pm.response.to.have.status(201);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data).to.have.property('payment_intent_id');",
+                  "    pm.expect(jsonData.data).to.have.property('client_secret');",
+                  "});",
+                  "",
+                  "// Save payment intent ID",
+                  "if (pm.response.code === 201) {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.environment.set('payment_intent_id', jsonData.data.payment_intent_id);",
+                  "    pm.environment.set('client_secret', jsonData.data.client_secret);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"amount\": 4452.25,\n  \"payment_method\": \"STRIPE\",\n  \"payment_type\": \"ORDER_PAYMENT\",\n  \"return_url\": \"https://yourapp.com/payment/success\",\n  \"cancel_url\": \"https://yourapp.com/payment/cancel\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/create_intent/",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "create_intent", ""]
+            }
+          }
+        },
+        {
+          "name": "Confirm Payment",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"payment_intent_id\": \"{{payment_intent_id}}\",\n  \"payment_method_id\": \"pm_1234567890\",\n  \"order_id\": \"{{order_id}}\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/payments/confirm/",
+              "host": ["{{base_url}}"],
+              "path": ["payments", "confirm", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Payment History",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/payments/?status=COMPLETED",
+              "host": ["{{base_url}}"],
+              "path": ["payments", ""],
+              "query": [
+                {
+                  "key": "status",
+                  "value": "COMPLETED"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📄 Invoicing",
+      "item": [
+        {
+          "name": "Get Invoices",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/invoicing/invoices/",
+              "host": ["{{base_url}}"],
+              "path": ["invoicing", "invoices", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Invoice Details",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/invoicing/invoices/{{invoice_id}}/",
+              "host": ["{{base_url}}"],
+              "path": ["invoicing", "invoices", "{{invoice_id}}", ""]
+            }
+          }
+        },
+        {
+          "name": "Download Invoice PDF",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/invoicing/invoices/{{invoice_id}}/pdf/",
+              "host": ["{{base_url}}"],
+              "path": ["invoicing", "invoices", "{{invoice_id}}", "pdf", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚚 Delivery Management",
+      "item": [
+        {
+          "name": "Schedule Delivery",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"order_id\": \"{{order_id}}\",\n  \"document_type\": \"DELIVERY\",\n  \"scheduled_datetime\": \"2025-01-15T08:00:00Z\",\n  \"delivery_address\": {\n    \"street_address\": \"Construction Site A\",\n    \"city\": \"New York\",\n    \"state\": \"NY\",\n    \"postal_code\": \"10001\"\n  },\n  \"driver_id\": 1,\n  \"vehicle_info\": \"Truck #001\",\n  \"special_instructions\": \"Call customer 30 minutes before arrival\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/deliveries/delivery_docs/schedule/",
+              "host": ["{{base_url}}"],
+              "path": ["deliveries", "delivery_docs", "schedule", ""]
+            }
+          }
+        },
+        {
+          "name": "Get Delivery Schedule",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/deliveries/delivery_docs/schedule_for_date/?date=2025-01-15",
+              "host": ["{{base_url}}"],
+              "path": ["deliveries", "delivery_docs", "schedule_for_date", ""],
+              "query": [
+                {
+                  "key": "date",
+                  "value": "2025-01-15"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Update Delivery Status",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"IN_TRANSIT\",\n  \"notes\": \"Left warehouse, en route to customer\",\n  \"location\": {\n    \"latitude\": 40.7128,\n    \"longitude\": -74.0060\n  },\n  \"estimated_arrival\": \"2025-01-15T08:30:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/deliveries/delivery_docs/{{delivery_id}}/update_status/",
+              "host": ["{{base_url}}"],
+              "path": ["deliveries", "delivery_docs", "{{delivery_id}}", "update_status", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔔 Notifications",
+      "item": [
+        {
+          "name": "Get User Notifications",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/?limit=10",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", ""],
+              "query": [
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Mark Notification as Read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/{{notification_id}}/read/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "{{notification_id}}", "read", ""]
+            }
+          }
+        },
+        {
+          "name": "Mark All Notifications as Read",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "PUT",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/notifications/read-all/",
+              "host": ["{{base_url}}"],
+              "path": ["notifications", "read-all", ""]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Reports & Analytics",
+      "item": [
+        {
+          "name": "Get Rental Summary Report",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reports/rental-summary/?start_date=2025-01-01&end_date=2025-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "rental-summary", ""],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-01-31"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Revenue Report",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/reports/revenue/?period=monthly&start_date=2024-12-01&end_date=2025-01-31",
+              "host": ["{{base_url}}"],
+              "path": ["reports", "revenue", ""],
+              "query": [
+                {
+                  "key": "period",
+                  "value": "monthly"
+                },
+                {
+                  "key": "start_date",
+                  "value": "2024-12-01"
+                },
+                {
+                  "key": "end_date",
+                  "value": "2025-01-31"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔑 API Management",
+      "item": [
+        {
+          "name": "Create API Key",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Mobile App Integration\",\n  \"description\": \"API key for mobile application\",\n  \"permissions\": {\n    \"orders\": [\"read\", \"create\"],\n    \"products\": [\"read\"],\n    \"customers\": [\"read\", \"update\"]\n  },\n  \"rate_limit\": 1000,\n  \"expires_at\": \"2026-01-01T00:00:00Z\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/external/keys/",
+              "host": ["{{base_url}}"],
+              "path": ["external", "keys", ""]
+            }
+          }
+        },
+        {
+          "name": "Get API Usage Logs",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/external/logs/?start_date=2025-01-01&limit=100",
+              "host": ["{{base_url}}"],
+              "path": ["external", "logs", ""],
+              "query": [
+                {
+                  "key": "start_date",
+                  "value": "2025-01-01"
+                },
+                {
+                  "key": "limit",
+                  "value": "100"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏥 System Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('System is healthy', function () {",
+                  "    pm.response.to.have.status(200);",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.status).to.eql('healthy');",
+                  "});",
+                  "",
+                  "pm.test('All services are up', function () {",
+                  "    const jsonData = pm.response.json();",
+                  "    pm.expect(jsonData.data.checks.database.status).to.eql('healthy');",
+                  "    pm.expect(jsonData.data.checks.redis.status).to.eql('healthy');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health/",
+              "host": ["{{base_url}}"],
+              "path": ["health", ""]
+            }
+          }
+        },
+        {
+          "name": "System Metrics",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "{{access_token}}",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/metrics/",
+              "host": ["{{base_url}}"],
+              "path": ["metrics", ""]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

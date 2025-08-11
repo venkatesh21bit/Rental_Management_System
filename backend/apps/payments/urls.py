@@ -4,6 +4,7 @@ from .views import (
     PaymentViewSet, PaymentProviderViewSet, PaymentRefundViewSet,
     PaymentLinkViewSet, BankAccountViewSet, WebhookEventViewSet
 )
+from .webhook_views import StripeWebhookView, razorpay_webhook, webhook_health_check
 
 app_name = 'payments'
 
@@ -15,11 +16,18 @@ router.register(r'payment-links', PaymentLinkViewSet, basename='payment-link')
 router.register(r'bank-accounts', BankAccountViewSet, basename='bank-account')
 router.register(r'webhooks', WebhookEventViewSet, basename='webhook-event')
 
-# Additional specific endpoints
+# Industry-grade webhook endpoints with atomic transactions
+webhook_patterns = [
+    path('webhooks/stripe/', StripeWebhookView.as_view(), name='stripe-webhook'),
+    path('webhooks/razorpay/', razorpay_webhook, name='razorpay-webhook'),
+    path('webhooks/health/', webhook_health_check, name='webhook-health'),
+]
+
+# Legacy webhook endpoint (maintained for backwards compatibility)
 additional_patterns = [
     path('webhook/', WebhookEventViewSet.as_view({'post': 'create'}), name='webhook'),
 ]
 
 urlpatterns = [
     path('', include(router.urls)),
-] + additional_patterns
+] + webhook_patterns + additional_patterns

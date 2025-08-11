@@ -1,0 +1,74 @@
+# CORE_PRODUCTION_REQUIREMENTS.txt - Compatible production packages
+
+# Core Django packages (already installed)
+Django==5.1.5
+psycopg2-binary==2.9.10
+python-decouple==3.8
+django-cors-headers==4.6.0
+djangorestframework==3.15.2
+Pillow==11.1.0
+dj-database-url==2.1.0
+gunicorn==23.0.0
+whitenoise==6.8.2
+djangorestframework-simplejwt==5.3.0
+
+# Celery and Redis
+celery==5.3.6
+redis==5.0.1
+django-celery-beat==2.7.0
+django-celery-results==2.5.1
+
+# ESSENTIAL PRODUCTION ENHANCEMENTS
+# Security (Django 5.1 compatible)
+django-csp==3.8
+cryptography==42.0.5
+bcrypt==4.1.2
+
+# Monitoring and Logging
+psutil==5.9.8
+python-json-logger==2.0.7
+sentry-sdk[django]==1.40.6
+
+# Performance
+django-redis==5.4.0
+django-debug-toolbar==4.2.0
+
+# Testing Framework
+pytest==8.0.0
+pytest-django==4.8.0
+pytest-cov==4.0.0
+factory-boy==3.3.0
+faker==22.6.0
+
+# Rate limiting
+django-ratelimit==4.1.0
+
+# Health checks
+django-health-check==3.17.0
+
+# API documentation
+drf-spectacular==0.27.1
+
+# Background tasks monitoring
+flower==2.0.1
+
+# Development tools
+ipython==8.21.0
+black==24.2.0
+flake8==7.0.0
+isort==5.13.2
+
+# Data validation
+pydantic==2.6.1
+
+# Audit logging
+django-auditlog==2.3.0
+
+# File validation
+python-magic==0.4.27
+
+# Date/time utilities
+python-dateutil==2.8.2
+
+# Requests
+requests==2.31.0

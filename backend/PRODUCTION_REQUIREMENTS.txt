@@ -1,0 +1,123 @@
+# PRODUCTION_UPGRADE_REQUIREMENTS.txt - Enhanced requirements for production
+
+# Core Django packages
+Django==5.1.5
+psycopg2-binary==2.9.10
+python-decouple==3.8
+django-cors-headers==4.6.0
+djangorestframework==3.15.2
+Pillow==11.1.0
+dj-database-url==2.1.0
+gunicorn==23.0.0
+whitenoise==6.8.2
+djangorestframework-simplejwt==5.3.0
+
+# Celery and Redis
+celery==5.3.6
+redis==5.0.1
+django-celery-beat==2.7.0
+django-celery-results==2.5.1
+
+# Payment processing
+stripe==8.2.0
+
+# Document generation
+reportlab==4.0.8
+openpyxl==3.1.2
+
+# Filtering and extensions
+django-filter==23.5
+django-extensions==3.2.3
+
+# PRODUCTION ENHANCEMENTS
+# Security
+django-security==1.1.1
+django-csp==3.8
+cryptography==42.0.5
+bcrypt==4.1.2
+
+# Monitoring and Logging
+psutil==5.9.8
+python-json-logger==2.0.7
+sentry-sdk[django]==1.40.6
+
+# Performance
+django-redis==5.4.0
+django-debug-toolbar==4.2.0
+
+# Testing
+pytest==8.0.0
+pytest-django==4.8.0
+pytest-cov==4.0.0
+factory-boy==3.3.0
+faker==22.6.0
+
+# Database optimizations
+django-connection-pool==1.0.0
+sqlparse==0.4.4
+
+# File handling
+django-storages==1.14.2
+boto3==1.34.44
+
+# Email
+django-anymail==10.3
+
+# Rate limiting
+django-ratelimit==4.1.0
+
+# Health checks
+django-health-check==3.17.0
+
+# Environment and configuration
+environs[django]==11.0.0
+
+# API documentation
+drf-spectacular==0.27.1
+
+# Background tasks monitoring
+flower==2.0.1
+
+# Timezone handling
+pytz==2024.1
+
+# HTTP client
+requests==2.31.0
+httpx==0.26.0
+
+# Validation
+marshmallow==3.20.2
+cerberus==1.3.5
+
+# Development and debugging
+ipython==8.21.0
+black==24.2.0
+flake8==7.0.0
+isort==5.13.2
+
+# Data serialization
+orjson==3.9.15
+
+# Async support
+asgiref==3.7.2
+
+# Password strength
+django-password-validators==1.7.1
+
+# SSL/TLS
+certifi==2024.2.2
+
+# Data validation
+pydantic==2.6.1
+
+# Task queue monitoring
+kombu==5.3.4
+
+# Audit logging
+django-auditlog==2.3.0
+
+# File validation
+python-magic==0.4.27
+
+# Date/time utilities
+python-dateutil==2.8.2
