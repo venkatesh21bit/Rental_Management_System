@@ -17,8 +17,8 @@ django.setup()
 
 from django.contrib.auth import get_user_model
 from apps.accounts.models import UserProfile, CustomerGroup
-from apps.catalog.models import Category, Product, ProductImage, InventoryItem
-from apps.pricing.models import PriceList, PricingRule, Discount, LoyaltyProgram
+from apps.catalog.models import ProductCategory, Product, ProductImage, ProductItem
+from apps.pricing.models import PriceList, PriceRule, Discount, LoyaltyProgram
 from apps.orders.models import RentalQuote, RentalOrder, OrderItem
 from apps.deliveries.models import DeliveryDocument, DocumentType
 from apps.invoicing.models import Invoice, TaxRate
@@ -147,7 +147,7 @@ def create_sample_data():
     
     categories = []
     for name, description in categories_data:
-        category, created = Category.objects.get_or_create(
+        category, created = ProductCategory.objects.get_or_create(
             name=name,
             defaults={
                 'description': description,
@@ -161,84 +161,82 @@ def create_sample_data():
     
     products_data = [
         # Electronics
-        ('MacBook Pro 16"', 'High-performance laptop for professionals', categories[0], 2500.00, 50.00),
-        ('Canon EOS R5', 'Professional mirrorless camera', categories[0], 3500.00, 75.00),
-        ('iPad Pro 12.9"', 'Powerful tablet for creative work', categories[0], 1200.00, 25.00),
-        ('Sony A7 III', 'Full-frame mirrorless camera', categories[0], 2000.00, 45.00),
+        ('MacBook Pro 16"', 'High-performance laptop for professionals', categories[0]),
+        ('Canon EOS R5', 'Professional mirrorless camera', categories[0]),
+        ('iPad Pro 12.9"', 'Powerful tablet for creative work', categories[0]),
+        ('Sony A7 III', 'Full-frame mirrorless camera', categories[0]),
         
         # Tools & Equipment
-        ('DeWalt Drill Set', 'Professional cordless drill with accessories', categories[1], 350.00, 15.00),
-        ('Makita Circular Saw', 'High-performance circular saw', categories[1], 280.00, 12.00),
-        ('Bosch Laser Level', 'Precision laser level for construction', categories[1], 450.00, 18.00),
+        ('DeWalt Drill Set', 'Professional cordless drill with accessories', categories[1]),
+        ('Makita Circular Saw', 'High-performance circular saw', categories[1]),
+        ('Bosch Laser Level', 'Precision laser level for construction', categories[1]),
         
         # Furniture
-        ('Executive Office Chair', 'Ergonomic leather office chair', categories[2], 800.00, 20.00),
-        ('Standing Desk', 'Adjustable height standing desk', categories[2], 650.00, 25.00),
-        ('Conference Table', 'Large conference table for meetings', categories[2], 1200.00, 35.00),
+        ('Executive Office Chair', 'Ergonomic leather office chair', categories[2]),
+        ('Standing Desk', 'Adjustable height standing desk', categories[2]),
+        ('Conference Table', 'Large conference table for meetings', categories[2]),
         
         # Vehicles
-        ('Tesla Model 3', 'Electric luxury sedan', categories[3], 45000.00, 200.00),
-        ('BMW X5', 'Premium SUV for family trips', categories[3], 55000.00, 250.00),
-        ('Harley Davidson', 'Classic motorcycle for adventures', categories[3], 18000.00, 120.00),
+        ('Tesla Model 3', 'Electric luxury sedan', categories[3]),
+        ('BMW X5', 'Premium SUV for family trips', categories[3]),
+        ('Harley Davidson', 'Classic motorcycle for adventures', categories[3]),
         
         # Sports & Recreation
-        ('Professional Bike', 'High-end mountain bike', categories[4], 2500.00, 35.00),
-        ('Kayak Set', 'Complete kayaking equipment', categories[4], 800.00, 25.00),
-        ('Golf Cart', 'Electric golf cart', categories[4], 8000.00, 60.00),
+        ('Professional Bike', 'High-end mountain bike', categories[4]),
+        ('Kayak Set', 'Complete kayaking equipment', categories[4]),
+        ('Golf Cart', 'Electric golf cart', categories[4]),
         
         # Events & Parties
-        ('DJ Sound System', 'Professional audio system', categories[5], 2200.00, 80.00),
-        ('Party Tent 20x30', 'Large event tent', categories[5], 1500.00, 65.00),
-        ('LED Light Setup', 'Professional lighting system', categories[5], 1800.00, 55.00),
+        ('DJ Sound System', 'Professional audio system', categories[5]),
+        ('Party Tent 20x30', 'Large event tent', categories[5]),
+        ('LED Light Setup', 'Professional lighting system', categories[5]),
         
         # Construction
-        ('Mini Excavator', 'Compact excavator for construction', categories[6], 35000.00, 300.00),
-        ('Concrete Mixer', 'Industrial concrete mixer', categories[6], 4500.00, 85.00),
-        ('Scaffolding Set', 'Complete scaffolding system', categories[6], 2800.00, 45.00),
+        ('Mini Excavator', 'Compact excavator for construction', categories[6]),
+        ('Concrete Mixer', 'Industrial concrete mixer', categories[6]),
+        ('Scaffolding Set', 'Complete scaffolding system', categories[6]),
         
         # Photography
-        ('Studio Lighting Kit', 'Professional studio lighting', categories[7], 1200.00, 40.00),
-        ('Drone with Camera', '4K drone for aerial photography', categories[7], 1800.00, 35.00),
-        ('Photo Booth Setup', 'Complete photo booth system', categories[7], 2500.00, 75.00),
+        ('Studio Lighting Kit', 'Professional studio lighting', categories[7]),
+        ('Drone with Camera', '4K drone for aerial photography', categories[7]),
+        ('Photo Booth Setup', 'Complete photo booth system', categories[7]),
     ]
     
     products = []
-    for name, description, category, value, daily_rate in products_data:
+    for name, description, category in products_data:
         product, created = Product.objects.get_or_create(
             name=name,
             defaults={
                 'description': description,
                 'category': category,
-                'estimated_value': Decimal(value),
-                'daily_rental_rate': Decimal(daily_rate),
-                'is_rentable': True,
-                'is_available': True,
-                'condition': 'EXCELLENT',
                 'sku': f'SKU{len(products)+1:04d}',
-                'barcode': f'BC{len(products)+1:010d}',
-                'manufacturer': 'Sample Manufacturer',
+                'name': name,
+                'brand': 'Sample Manufacturer',
                 'model': f'Model-{len(products)+1}',
-                'year_manufactured': 2023,
+                'year': 2023,
+                'rentable': True,
+                'is_active': True,
+                'quantity_on_hand': 5,
+                'default_rental_unit': 'DAY',
             }
         )
         products.append(product)
     
-    # 5. Create Inventory Items
-    print("📊 Creating inventory items...")
+    # 5. Create Product Items (Serial tracked items)
+    print("📊 Creating product items...")
     
     for i, product in enumerate(products):
-        # Create 2-5 inventory items per product
+        # Create 2-5 product items per product
         quantity = min(5, max(2, (i % 4) + 2))
         for j in range(quantity):
-            InventoryItem.objects.get_or_create(
+            ProductItem.objects.get_or_create(
                 product=product,
                 serial_number=f'{product.sku}-{j+1:03d}',
                 defaults={
-                    'condition': ['EXCELLENT', 'GOOD', 'FAIR'][j % 3],
+                    'status': 'AVAILABLE',
+                    'condition_rating': [10, 9, 8][j % 3],
                     'location': ['Warehouse A', 'Warehouse B', 'Store Front'][j % 3],
-                    'is_available': True,
-                    'last_maintenance': timezone.now() - timedelta(days=30),
-                    'next_maintenance': timezone.now() + timedelta(days=90),
+                    'condition_notes': f'Good condition item #{j+1}',
                 }
             )
     
@@ -431,9 +429,9 @@ def create_sample_data():
     
     print("✅ Sample data creation completed!")
     print(f"   - {User.objects.count()} users created")
-    print(f"   - {Category.objects.count()} categories created")
+    print(f"   - {ProductCategory.objects.count()} categories created")
     print(f"   - {Product.objects.count()} products created")
-    print(f"   - {InventoryItem.objects.count()} inventory items created")
+    print(f"   - {ProductItem.objects.count()} product items created")
     print(f"   - {RentalOrder.objects.count()} sample orders created")
     print(f"   - {NotificationTemplate.objects.count()} notification templates created")
     print(f"   - {PaymentProvider.objects.count()} payment providers configured")
