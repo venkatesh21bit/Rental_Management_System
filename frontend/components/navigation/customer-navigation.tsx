@@ -4,6 +4,14 @@ import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import {
   ShoppingCart,
   User,
   Bell,
@@ -14,7 +22,10 @@ import {
   Users,
   CreditCard,
   FileText,
-  Heart
+  Heart,
+  ChevronDown,
+  UserCircle,
+  History
 } from "lucide-react"
 
 interface CustomerNavigationProps {
@@ -65,16 +76,62 @@ export function CustomerNavigation({ activeTab, setActiveTab, userData, onSignOu
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="hidden md:flex items-center gap-2">
-            <div className="text-right">
-              <div className="text-sm font-medium">{userData.name}</div>
-              <div className="text-xs text-gray-500">
-                <Badge variant="secondary" className="text-xs">
-                  {userData.type} member
-                </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-2 transition-colors">
+                <div className="hidden md:flex items-center gap-2">
+                  <div className="text-right">
+                    <div className="text-sm font-medium flex items-center gap-1">
+                      {userData.name}
+                      <ChevronDown className="h-3 w-3 text-gray-400" />
+                    </div>
+                    <div className="text-xs text-gray-500">
+                      <Badge variant="secondary" className="text-xs">
+                        {userData.type} member
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                  {userData.name?.[0] || 'C'}
+                </div>
               </div>
-            </div>
-          </div>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-56">
+              <DropdownMenuLabel>My Account</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setActiveTab("customer-portal")}>
+                <UserCircle className="mr-2 h-4 w-4" />
+                <span>Profile</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("my-rentals")}>
+                <Package className="mr-2 h-4 w-4" />
+                <span>My Rentals</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("favorites")}>
+                <Heart className="mr-2 h-4 w-4" />
+                <span>Favorites</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("billing")}>
+                <CreditCard className="mr-2 h-4 w-4" />
+                <span>Billing & Payments</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>Account Settings</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setActiveTab("my-rentals")}>
+                <History className="mr-2 h-4 w-4" />
+                <span>Order History</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={onSignOut} className="text-red-600">
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>Sign Out</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           <Button variant="ghost" size="icon">
             <Bell className="h-4 w-4" />
@@ -82,13 +139,6 @@ export function CustomerNavigation({ activeTab, setActiveTab, userData, onSignOu
           <Button variant="ghost" size="icon">
             <Settings className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="icon" onClick={onSignOut}>
-            <LogOut className="h-4 w-4" />
-          </Button>
-          
-          <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
-            {userData.name?.[0] || 'C'}
-          </div>
         </div>
       </div>
     </nav>

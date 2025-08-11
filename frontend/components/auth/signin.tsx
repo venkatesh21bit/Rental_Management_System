@@ -24,9 +24,10 @@ import {
 
 interface SignInProps {
   onSignIn: (userType: 'customer' | 'end-user', userData: any) => void
+  onShowSignUp: () => void
 }
 
-export function SignIn({ onSignIn }: SignInProps) {
+export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
   const [activeTab, setActiveTab] = useState("customer")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
@@ -247,7 +248,7 @@ export function SignIn({ onSignIn }: SignInProps) {
                   
                   <Separator />
                   
-                  <Button variant="outline" className="w-full" type="button">
+                  <Button variant="outline" className="w-full" type="button" onClick={onShowSignUp}>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Create Customer Account
                   </Button>
@@ -321,6 +322,13 @@ export function SignIn({ onSignIn }: SignInProps) {
                       Forgot your password?
                     </Button>
                   </div>
+                  
+                  <Separator />
+                  
+                  <Button variant="outline" className="w-full" type="button" onClick={onShowSignUp}>
+                    <UserPlus className="h-4 w-4 mr-2" />
+                    Create End User Account
+                  </Button>
                 </form>
               </TabsContent>
             </Tabs>

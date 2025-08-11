@@ -5,6 +5,7 @@ import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { CustomerNavigation } from "@/components/navigation/customer-navigation"
 import { CustomerPortalShop } from "@/components/customer-portal-shop"
 import { CustomerPortal } from "@/components/customer-portal"
+import { CustomerOrderHistory } from "@/components/customer-order-history"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -443,103 +444,9 @@ export function CustomerPlatform({ userData, onSignOut }: CustomerPlatformProps)
             <CustomerPortal />
           </TabsContent>
 
-          {/* My Rentals */}
+          {/* My Rentals - Order History */}
           <TabsContent value="my-rentals">
-            <div className="space-y-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h1 className="text-3xl font-bold">My Rentals</h1>
-                  <p className="text-gray-600">Track and manage your current and past rentals</p>
-                </div>
-                <Badge variant="default" className="text-lg px-4 py-2">
-                  {customerStats.activeRentals} Active
-                </Badge>
-              </div>
-
-              {/* Quick Stats */}
-              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Active Rentals</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{customerStats.activeRentals}</div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Total Rentals</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{customerStats.totalRentals}</div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Total Spent</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">${customerStats.totalSpent}</div>
-                  </CardContent>
-                </Card>
-                
-                <Card>
-                  <CardHeader className="pb-2">
-                    <CardTitle className="text-sm font-medium text-gray-600">Member Since</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">2024</div>
-                  </CardContent>
-                </Card>
-              </div>
-
-              {/* Current Rentals */}
-              <Card>
-                <CardHeader>
-                  <CardTitle>Current Rentals</CardTitle>
-                  <CardDescription>Items you currently have rented</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <Package className="h-10 w-10 text-blue-600" />
-                          <div>
-                            <h3 className="font-semibold">Professional Camera Kit</h3>
-                            <p className="text-gray-600">Rental ID: RO-2024-045</p>
-                            <p className="text-sm text-gray-500">Due: March 18, 2024</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="default">Active</Badge>
-                          <div className="text-lg font-semibold mt-1">$375.00</div>
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="border rounded-lg p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <Package className="h-10 w-10 text-blue-600" />
-                          <div>
-                            <h3 className="font-semibold">Sound System Package</h3>
-                            <p className="text-gray-600">Rental ID: RO-2024-043</p>
-                            <p className="text-sm text-gray-500">Due: March 20, 2024</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="secondary">Extension Requested</Badge>
-                          <div className="text-lg font-semibold mt-1">$540.00</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
+            <CustomerOrderHistory />
           </TabsContent>
 
           {/* Favorites */}
