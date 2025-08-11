@@ -18,18 +18,36 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from apps.api import utils_views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/', include('app.urls')),
-    # Temporarily commented out until all dependencies are resolved
-    # path('api/orders/', include('apps.orders.urls')),
+    
+    # Authentication and User Management
+    path('api/', include('apps.accounts.urls')),
+    
+    # Core Business APIs
+    path('api/catalog/', include('apps.catalog.urls')),
+    path('api/pricing/', include('apps.pricing.urls')),
+    path('api/orders/', include('apps.orders.urls')),
+    
+    # Operations APIs
     path('api/deliveries/', include('apps.deliveries.urls')),
     path('api/invoicing/', include('apps.invoicing.urls')),
     path('api/payments/', include('apps.payments.urls')),
+    
+    # Support APIs
     path('api/notifications/', include('apps.notifications.urls')),
     path('api/reports/', include('apps.reports.urls')),
     path('api/external/', include('apps.api.urls')),
+    
+    # Utility endpoints
+    path('api/health/', utils_views.health_check, name='health-check'),
+    path('api/metrics/', utils_views.metrics, name='metrics'),
+    path('api/seed/', utils_views.seed_data, name='seed-data'),
+    path('api/reset/', utils_views.reset_data, name='reset-data'),
+    path('api/support/ticket/', utils_views.support_ticket, name='support-ticket'),
+    path('api/uploads/', utils_views.upload_file, name='upload-file'),
 ]
 
 # Serve media files during development

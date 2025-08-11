@@ -17,6 +17,12 @@ from .serializers import (
 from .services import AvailabilityService
 from apps.pricing.services import PricingService
 
+# Import email notification tasks
+try:
+    from apps.notifications.tasks import send_order_confirmation_email
+except ImportError:
+    send_order_confirmation_email = None
+
 
 class RentalQuoteViewSet(viewsets.ModelViewSet):
     queryset = RentalQuote.objects.all()
@@ -198,7 +204,11 @@ class RentalOrderViewSet(viewsets.ModelViewSet):
         return queryset.select_related('customer', 'created_by', 'quote', 'price_list').prefetch_related('items__product', 'reservations')
     
     def perform_create(self, serializer):
-        serializer.save(created_by=self.request.user)
+        order = serializer.save(created_by=self.request.user)
+        
+        # Send order confirmation email
+        if send_order_confirmation_email and order.customer.email:
+            send_order_confirmation_email.delay(order.id)
     
     @action(detail=True, methods=['post'])
     def confirm_pickup(self, request, pk=None):

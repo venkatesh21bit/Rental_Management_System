@@ -49,7 +49,6 @@ INSTALLED_APPS = [
     'django_extensions',
     
     # Local apps
-    'app.core',
     'apps.accounts',
     'apps.catalog',
     'apps.pricing',
@@ -167,8 +166,8 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# Custom User Model
-AUTH_USER_MODEL = 'core.User'
+# Using Django's built-in User model with UserProfile extension
+# AUTH_USER_MODEL = 'auth.User'  # Using default Django User model
 
 # Django REST Framework configuration
 REST_FRAMEWORK = {
@@ -258,9 +257,25 @@ EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='')
+EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='rentalmanagement2024@gmail.com')
 EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='noreply@rental.com')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Rental Management System <rentalmanagement2024@gmail.com>')
+DEFAULT_REPLY_TO_EMAIL = config('DEFAULT_REPLY_TO_EMAIL', default='rentalmanagement2024@gmail.com')
+
+# Company information for emails
+COMPANY_NAME = config('COMPANY_NAME', default='Rental Management System')
+COMPANY_PHONE = config('COMPANY_PHONE', default='+91-9876543210')
+COMPANY_ADDRESS = config('COMPANY_ADDRESS', default='Delhi, India')
+WEBSITE_URL = config('WEBSITE_URL', default='https://rentalmanagement.com')
+
+# Email validation and fallback
+if not EMAIL_HOST_USER or not EMAIL_HOST_PASSWORD:
+    import logging
+    logging.warning('Email credentials not configured. Email notifications may not work.')
+    # Fallback to console backend for development
+    if DEBUG:
+        EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
 # File upload settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 5242880  # 5MB

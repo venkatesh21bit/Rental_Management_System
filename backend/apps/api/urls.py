@@ -1,11 +1,20 @@
 from django.urls import path, include
+from rest_framework.routers import DefaultRouter
+from .views import (
+    APIKeyViewSet, IntegrationViewSet, WebhookEndpointViewSet,
+    APILogViewSet, RateLimitRuleViewSet, ExternalSystemViewSet
+)
 
 app_name = 'api'
 
+router = DefaultRouter()
+router.register(r'keys', APIKeyViewSet, basename='api-key')
+router.register(r'integrations', IntegrationViewSet, basename='integration')
+router.register(r'webhooks', WebhookEndpointViewSet, basename='webhook-endpoint')
+router.register(r'logs', APILogViewSet, basename='api-log')
+router.register(r'rate-limits', RateLimitRuleViewSet, basename='rate-limit-rule')
+router.register(r'systems', ExternalSystemViewSet, basename='external-system')
+
 urlpatterns = [
-    # API management URLs will be added here when views are implemented
-    # path('keys/', APIKeyListView.as_view(), name='api-keys'),
-    # path('requests/', APIRequestListView.as_view(), name='api-requests'),
-    # path('webhooks/', WebhookEndpointListView.as_view(), name='webhooks'),
-    # path('integrations/', ExternalIntegrationListView.as_view(), name='integrations'),
+    path('', include(router.urls)),
 ]
