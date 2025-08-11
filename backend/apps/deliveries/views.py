@@ -293,19 +293,241 @@ class DeliveryRouteViewSet(viewsets.ModelViewSet):
         if not self.request.user.is_staff:
             return DeliveryRoute.objects.none()
         
-        queryset = super().get_queryset().select_related('driver').prefetch_related('deliveries')
+        queryset = super().get_queryset().select_related('driver').prefetch_related('delivery_documents', 'return_documents')
         return queryset.order_by('-route_date', '-created_at')
-# Full implementation will be added when serializers are created
 
+    @action(detail=False, methods=['post'])
+    def auto_schedule(self, request):
+        """Auto-schedule deliveries for a specific date"""
+        from .tasks import auto_schedule_deliveries
+        
+        date_str = request.data.get('date')
+        if not date_str:
+            return Response({
+                'success': False,
+                'error': 'Date is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Trigger async task
+            task = auto_schedule_deliveries.delay(date_str)
+            
+            return Response({
+                'success': True,
+                'message': 'Auto-scheduling initiated',
+                'task_id': task.id
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['post'])
+    def trigger_workflow(self, request):
+        """Trigger automated delivery workflow for an order"""
+        from .tasks import trigger_delivery_workflow
+        
+        order_id = request.data.get('order_id')
+        if not order_id:
+            return Response({
+                'success': False,
+                'error': 'Order ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        try:
+            # Trigger async workflow
+            task = trigger_delivery_workflow.delay(order_id)
+            
+            return Response({
+                'success': True,
+                'message': 'Delivery workflow triggered',
+                'task_id': task.id
+            })
+        except Exception as e:
+            return Response({
+                'success': False,
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+    @action(detail=False, methods=['get'])
+    def analytics(self, request):
+        """Get delivery analytics"""
+        from django.db.models import Count, Avg
+        from datetime import datetime, timedelta
+        
+        date_from = request.query_params.get('date_from')
+        date_to = request.query_params.get('date_to')
+        
+        # Default to last 30 days if no dates provided
+        if not date_from:
+            date_from = (datetime.now() - timedelta(days=30)).date()
+        else:
+            date_from = datetime.strptime(date_from, '%Y-%m-%d').date()
+            
+        if not date_to:
+            date_to = datetime.now().date()
+        else:
+            date_to = datetime.strptime(date_to, '%Y-%m-%d').date()
+        
+        # Delivery analytics
+        deliveries = DeliveryDocument.objects.filter(
+            scheduled_datetime__date__range=[date_from, date_to]
+        )
+        
+        returns = ReturnDocument.objects.filter(
+            due_datetime__date__range=[date_from, date_to]
+        )
+        
+        analytics_data = {
+            'period': {
+                'from': date_from,
+                'to': date_to
+            },
+            'deliveries': {
+                'total': deliveries.count(),
+                'by_status': deliveries.values('status').annotate(count=Count('id')),
+                'completed': deliveries.filter(status=DeliveryDocument.Status.DELIVERED).count(),
+                'pending': deliveries.filter(status=DeliveryDocument.Status.PENDING).count(),
+                'in_transit': deliveries.filter(status=DeliveryDocument.Status.IN_TRANSIT).count(),
+            },
+            'returns': {
+                'total': returns.count(),
+                'by_status': returns.values('status').annotate(count=Count('id')),
+                'completed': returns.filter(status=ReturnDocument.Status.COMPLETED).count(),
+                'overdue': returns.filter(status=ReturnDocument.Status.OVERDUE).count(),
+            },
+            'efficiency': {
+                'on_time_deliveries': deliveries.filter(
+                    status=DeliveryDocument.Status.DELIVERED,
+                    completed_at__lte=timezone.now()
+                ).count(),
+                'total_routes': DeliveryRoute.objects.filter(
+                    route_date__range=[date_from, date_to]
+                ).count(),
+            }
+        }
+        
+        return Response({
+            'success': True,
+            'data': analytics_data
+        })
+
+@api_view(['POST'])
+def update_delivery_status(request, delivery_id):
+    """Update delivery status and trigger workflow progression"""
+    try:
+        delivery = DeliveryDocument.objects.get(id=delivery_id)
+        new_status = request.data.get('status')
+        proof = request.data.get('proof_of_delivery')
+        
+        if new_status not in [choice[0] for choice in DeliveryDocument.Status.choices]:
+            return Response({
+                'success': False,
+                'error': 'Invalid status'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        delivery.status = new_status
+        if proof:
+            delivery.proof_of_delivery = proof
+        
+        if new_status == DeliveryDocument.Status.DELIVERED:
+            delivery.completed_at = timezone.now()
+            # Trigger completion processing
+            from .tasks import process_delivery_completion
+            process_delivery_completion.delay(str(delivery.id))
+        
+        delivery.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Status updated successfully',
+            'data': DeliveryDocumentSerializer(delivery).data
+        })
+        
+    except DeliveryDocument.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Delivery not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+def update_return_status(request, return_id):
+    """Update return status and process completion"""
+    try:
+        return_doc = ReturnDocument.objects.get(id=return_id)
+        new_status = request.data.get('status')
+        
+        if new_status not in [choice[0] for choice in ReturnDocument.Status.choices]:
+            return Response({
+                'success': False,
+                'error': 'Invalid status'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        return_doc.status = new_status
+        
+        if new_status == ReturnDocument.Status.COMPLETED:
+            return_doc.completed_at = timezone.now()
+            # Trigger completion processing
+            from .tasks import process_return_completion
+            process_return_completion.delay(str(return_doc.id))
+        
+        return_doc.save()
+        
+        return Response({
+            'success': True,
+            'message': 'Return status updated successfully',
+            'data': ReturnDocumentSerializer(return_doc).data
+        })
+        
+    except ReturnDocument.DoesNotExist:
+        return Response({
+            'success': False,
+            'error': 'Return document not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'success': False,
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+# Original delivery overview function
 @api_view(['GET'])
 def delivery_overview(request):
     """Get delivery overview statistics"""
+    today = datetime.now().date()
+    
+    total_deliveries = DeliveryDocument.objects.count()
+    pending_deliveries = DeliveryDocument.objects.filter(
+        status__in=[DeliveryDocument.Status.PENDING, DeliveryDocument.Status.SCHEDULED]
+    ).count()
+    completed_deliveries = DeliveryDocument.objects.filter(
+        status=DeliveryDocument.Status.DELIVERED
+    ).count()
+    
+    todays_deliveries = DeliveryDocument.objects.filter(
+        scheduled_datetime__date=today
+    ).count()
+    
+    overdue_returns = ReturnDocument.objects.filter(
+        due_datetime__lt=timezone.now(),
+        status__in=[ReturnDocument.Status.PENDING, ReturnDocument.Status.SCHEDULED]
+    ).count()
+    
     return Response({
         'status': 'success',
-        'message': 'Deliveries app is working',
+        'message': 'Delivery overview retrieved successfully',
         'data': {
-            'total_deliveries': 0,
-            'pending_deliveries': 0,
-            'completed_deliveries': 0
+            'total_deliveries': total_deliveries,
+            'pending_deliveries': pending_deliveries,
+            'completed_deliveries': completed_deliveries,
+            'todays_deliveries': todays_deliveries,
+            'overdue_returns': overdue_returns,
+            'workflow_status': 'automated'  # Indicates automated workflow is active
         }
     })

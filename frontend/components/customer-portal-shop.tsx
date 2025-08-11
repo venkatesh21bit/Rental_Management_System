@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -40,157 +40,16 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Eye,
-  Plus
+  Plus,
+  Loader2
 } from "lucide-react"
 import { format, addDays, differenceInDays } from "date-fns"
 import { ProductDetail } from "./product-detail"
 import { CartPage } from "./cart-page"
 import { DeliveryPage } from "./delivery-page"
 import { PaymentPage } from "./payment-page"
-
-// Enhanced rental products data with more attributes
-const rentalProducts = [
-  {
-    id: "RP001",
-    name: "Professional Camera Kit",
-    category: "Photography",
-    brand: "Canon",
-    color: "Black",
-    condition: "Excellent",
-    description: "Complete professional photography setup with DSLR camera, lenses, and accessories",
-    image: "/placeholder.jpg",
-    pricing: {
-      hourly: 15,
-      daily: 80,
-      weekly: 450,
-      monthly: 1600
-    },
-    deposit: 200,
-    availability: "available",
-    rating: 4.8,
-    reviews: 156,
-    features: ["Full Frame DSLR", "3 Professional Lenses", "Tripod & Accessories", "Carrying Case"],
-    location: "Downtown Store",
-    weight: "2.5kg",
-    dimensions: "30x20x15cm"
-  },
-  {
-    id: "RP002",
-    name: "Wedding Decoration Package",
-    category: "Events",
-    brand: "EventPro",
-    color: "Multi-color",
-    condition: "Good",
-    description: "Complete wedding decoration setup including flowers, lighting, and centerpieces",
-    image: "/placeholder.jpg",
-    pricing: {
-      daily: 350,
-      weekly: 2000
-    },
-    deposit: 500,
-    availability: "limited",
-    rating: 4.9,
-    reviews: 89,
-    features: ["Floral Arrangements", "LED Lighting", "Table Centerpieces", "Backdrop Setup"],
-    location: "Event Center",
-    weight: "15kg",
-    dimensions: "Various sizes"
-  },
-  {
-    id: "RP003",
-    name: "Power Tools Set",
-    category: "Tools",
-    brand: "DeWalt",
-    color: "Yellow",
-    condition: "Excellent",
-    description: "Professional grade power tools for construction and home improvement",
-    image: "/placeholder.jpg",
-    pricing: {
-      hourly: 8,
-      daily: 45,
-      weekly: 250,
-      monthly: 900
-    },
-    deposit: 150,
-    availability: "available",
-    rating: 4.7,
-    reviews: 203,
-    features: ["Cordless Drill", "Circular Saw", "Impact Driver", "Tool Case"],
-    location: "Hardware Store",
-    weight: "8kg",
-    dimensions: "50x30x20cm"
-  },
-  {
-    id: "RP004",
-    name: "Party Sound System",
-    category: "Audio",
-    brand: "JBL",
-    color: "Black",
-    condition: "Good",
-    description: "Professional sound system perfect for parties and events",
-    image: "/placeholder.jpg",
-    pricing: {
-      hourly: 12,
-      daily: 75,
-      weekly: 400,
-      monthly: 1400
-    },
-    deposit: 300,
-    availability: "available",
-    rating: 4.6,
-    reviews: 124,
-    features: ["Wireless Microphones", "Bluetooth Connectivity", "LED Light Show", "Remote Control"],
-    location: "Audio Center",
-    weight: "12kg",
-    dimensions: "60x40x35cm"
-  },
-  {
-    id: "RP005",
-    name: "Gaming Console Bundle",
-    category: "Entertainment",
-    brand: "Sony",
-    color: "White",
-    condition: "Excellent",
-    description: "Latest gaming console with controllers and popular games",
-    image: "/placeholder.jpg",
-    pricing: {
-      daily: 25,
-      weekly: 150,
-      monthly: 500
-    },
-    deposit: 100,
-    availability: "available",
-    rating: 4.9,
-    reviews: 78,
-    features: ["2 Controllers", "5 Popular Games", "4K Gaming", "Online Access"],
-    location: "Gaming Store",
-    weight: "3kg",
-    dimensions: "40x25x10cm"
-  },
-  {
-    id: "RP006",
-    name: "Laptop - MacBook Pro",
-    category: "Technology",
-    brand: "Apple",
-    color: "Silver",
-    condition: "Excellent",
-    description: "High-performance laptop for professional work and creative projects",
-    image: "/placeholder.jpg",
-    pricing: {
-      daily: 40,
-      weekly: 250,
-      monthly: 900
-    },
-    deposit: 200,
-    availability: "limited",
-    rating: 4.8,
-    reviews: 95,
-    features: ["16GB RAM", "512GB SSD", "M2 Chip", "Retina Display"],
-    location: "Tech Store",
-    weight: "1.6kg",
-    dimensions: "35x25x2cm"
-  }
-]
+import { useProducts, useCategories, useCart } from "@/hooks/use-api"
+import { toast } from "sonner"
 
 interface CustomerPortalShopProps {
   sharedWishlist?: any[]
@@ -213,9 +72,35 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
   const [selectedProduct, setSelectedProduct] = useState<any>(null)
   const [deliveryData, setDeliveryData] = useState<any>(null)
   
-  // Cart and wishlist states
-  const [cart, setCart] = useState<any[]>([])
+  // Wishlist state
   const [wishlist, setWishlist] = useState<any[]>(sharedWishlist)
+
+  // API hooks
+  const { 
+    products, 
+    loading: productsLoading, 
+    error: productsError, 
+    pagination,
+    fetchProducts 
+  } = useProducts({
+    search: searchTerm,
+    category: selectedCategory === "all" ? undefined : selectedCategory,
+    sortBy: sortBy as any,
+    sortOrder: sortBy.includes("price-high") ? "desc" : "asc",
+    page: 1,
+    limit: 20
+  })
+
+  const { categories, loading: categoriesLoading } = useCategories()
+  const { 
+    cartItems, 
+    itemCount, 
+    addToCart: addToCartHook, 
+    isProductInCart: isProductInCartHook,
+    removeItem: removeFromCartHook,
+    clearCart: clearCartHook,
+    total: cartTotal
+  } = useCart()
 
   // Sync wishlist changes with parent component
   const updateWishlist = (newWishlist: any[]) => {
@@ -225,41 +110,37 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
     }
   }
 
-  // Extract unique values for filters
-  const categories = Array.from(new Set(rentalProducts.map(p => p.category)))
-  const brands = Array.from(new Set(rentalProducts.map(p => p.brand)))
-  const colors = Array.from(new Set(rentalProducts.map(p => p.color)))
-  const conditions = Array.from(new Set(rentalProducts.map(p => p.condition)))
+  // Update filters and refresh products
+  useEffect(() => {
+    const delayTimer = setTimeout(() => {
+      fetchProducts({
+        search: searchTerm,
+        category: selectedCategory === "all" ? undefined : selectedCategory,
+        sortBy: sortBy as any,
+        sortOrder: sortBy.includes("price-high") ? "desc" : "asc",
+        page: 1,
+        limit: 20
+      })
+    }, 300) // Debounce search
 
-  // Filter and sort products
-  const filteredProducts = rentalProducts
-    .filter((product) => {
-      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                           product.description.toLowerCase().includes(searchTerm.toLowerCase())
-      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
-      const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(product.brand)
-      const matchesColor = selectedColors.length === 0 || selectedColors.includes(product.color)
-      const matchesCondition = selectedConditions.length === 0 || selectedConditions.includes(product.condition)
-      const matchesPrice = product.pricing.daily >= priceRange[0] && product.pricing.daily <= priceRange[1]
-      
-      return matchesSearch && matchesCategory && matchesBrand && matchesColor && matchesCondition && matchesPrice
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.name.localeCompare(b.name)
-        case "price-low":
-          return a.pricing.daily - b.pricing.daily
-        case "price-high":
-          return b.pricing.daily - a.pricing.daily
-        case "rating":
-          return b.rating - a.rating
-        case "reviews":
-          return b.reviews - a.reviews
-        default:
-          return 0
-      }
-    })
+    return () => clearTimeout(delayTimer)
+  }, [searchTerm, selectedCategory, sortBy, fetchProducts])
+
+  // Extract unique values for filters from products
+  const brands = Array.from(new Set(products.map(p => p.brand).filter(Boolean)))
+  const colors = Array.from(new Set(products.map(p => p.color).filter(Boolean)))
+  const conditions = Array.from(new Set(products.map(p => p.condition).filter(Boolean)))
+
+  // Filter products client-side for additional filters not handled by API
+  const filteredProducts = products.filter((product) => {
+    const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(product.brand || '')
+    const matchesColor = selectedColors.length === 0 || selectedColors.includes(product.color || '')
+    const matchesCondition = selectedConditions.length === 0 || selectedConditions.includes(product.condition || '')
+    const dailyPrice = product.pricing?.daily || product.basePrice || 0
+    const matchesPrice = dailyPrice >= priceRange[0] && dailyPrice <= priceRange[1]
+    
+    return matchesBrand && matchesColor && matchesCondition && matchesPrice
+  })
 
   const handleBrandChange = (brand: string, checked: boolean) => {
     if (checked) {
@@ -287,26 +168,28 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
 
   const addToCart = (product: any, quantity = 1, startDate?: Date, endDate?: Date) => {
     // Check if product is already in cart
-    if (isProductInCart(product.id)) {
-      return; // Prevent adding duplicate
+    if (isProductInCartHook(product.id)) {
+      toast.error("Product is already in cart")
+      return
     }
     
-    const newItem = {
-      id: product.id + '_' + Date.now(), // Unique cart item ID
+    const cartItem = {
       productId: product.id,
-      name: product.name,
-      pricing: product.pricing,
+      productName: product.name,
       quantity,
-      startDate: startDate || new Date(),
-      endDate: endDate || addDays(new Date(), 7),
-      product // Keep full product data
+      startDate: startDate ? startDate.toISOString() : new Date().toISOString(),
+      endDate: endDate ? endDate.toISOString() : addDays(new Date(), 7).toISOString(),
+      pricing: product.pricing || { daily: product.basePrice },
+      product
     }
-    setCart([...cart, newItem])
+    
+    addToCartHook(cartItem)
+    toast.success("Product added to cart!")
   }
 
   // Check if a product is already in cart
   const isProductInCart = (productId: string) => {
-    return cart.some(item => item.productId === productId)
+    return isProductInCartHook(productId)
   }
 
   // Check if a product is already in wishlist
@@ -334,16 +217,6 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
     }
   }
 
-  const updateCartQuantity = (itemId: string, quantity: number) => {
-    setCart(cart.map(item => 
-      item.id === itemId ? { ...item, quantity } : item
-    ))
-  }
-
-  const removeFromCart = (itemId: string) => {
-    setCart(cart.filter(item => item.id !== itemId))
-  }
-
   const handleProductClick = (product: any) => {
     setSelectedProduct(product)
     setCurrentPage("product")
@@ -365,8 +238,8 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
   const handlePaymentComplete = (paymentData: any) => {
     // Handle successful payment
     console.log("Payment completed:", paymentData)
-    alert("Order placed successfully!")
-    setCart([])
+    toast.success("Order placed successfully!")
+    clearCartHook()
     setCurrentPage("shop")
   }
 
@@ -411,9 +284,21 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
   if (currentPage === "cart") {
     return (
       <CartPage
-        items={cart}
-        onUpdateQuantity={updateCartQuantity}
-        onRemoveItem={removeFromCart}
+        items={cartItems.map(item => ({
+          ...item,
+          name: item.productName || (item.product && item.product.name) || "",
+          pricing: {
+            ...item.pricing,
+            daily: item.pricing?.daily ?? 0, // Ensure daily is always a number
+          },
+          startDate: new Date(item.startDate), // Convert string to Date
+          endDate: new Date(item.endDate), // Convert string to Date
+        }))}
+        onUpdateQuantity={(itemId: string, quantity: number) => {
+          // Handle cart quantity update
+          // This would need to be implemented in the cart service
+        }}
+        onRemoveItem={removeFromCartHook}
         onProceedToCheckout={handleProceedToCheckout}
         onBack={handleBackToShop}
       />
@@ -423,7 +308,16 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
   if (currentPage === "delivery") {
     return (
       <DeliveryPage
-        items={cart}
+        items={cartItems.map(item => ({
+          ...item,
+          name: item.productName || (item.product && item.product.name) || "",
+          pricing: {
+            ...item.pricing,
+            daily: item.pricing?.daily ?? 0, // Ensure daily is always a number
+          },
+          startDate: new Date(item.startDate), // Convert string to Date
+          endDate: new Date(item.endDate), // Convert string to Date
+        }))}
         onBack={handleBackToCart}
         onContinue={handleDeliveryConfirm}
       />
@@ -433,7 +327,16 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
   if (currentPage === "payment") {
     return (
       <PaymentPage
-        items={cart}
+        items={cartItems.map(item => ({
+          ...item,
+          name: item.productName || (item.product && item.product.name) || "",
+          pricing: {
+            ...item.pricing,
+            daily: item.pricing?.daily ?? 0, // Ensure daily is always a number
+          },
+          startDate: new Date(item.startDate), // Convert string to Date
+          endDate: new Date(item.endDate), // Convert string to Date
+        }))}
         deliveryData={deliveryData}
         onBack={handleBackToDelivery}
         onPayNow={handlePaymentComplete}
@@ -457,7 +360,7 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
               </Badge>
               <Button variant="outline" size="sm" onClick={handleCartClick}>
                 <ShoppingCart className="h-4 w-4 mr-2" />
-                Cart ({cart.length})
+                Cart ({itemCount})
               </Button>
             </div>
           </div>
@@ -493,8 +396,8 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
                       <SelectContent>
                         <SelectItem value="all">All Categories</SelectItem>
                         {categories.map((category) => (
-                          <SelectItem key={category} value={category}>
-                            {category}
+                          <SelectItem key={category.id} value={category.name}>
+                            {category.name}
                           </SelectItem>
                         ))}
                       </SelectContent>
@@ -505,12 +408,12 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
                   <div>
                     <Label className="text-sm font-medium">Brand</Label>
                     <div className="mt-2 space-y-2">
-                      {brands.map((brand) => (
+                      {brands.filter(brand => brand).map((brand) => (
                         <div key={brand} className="flex items-center space-x-2">
                           <Checkbox
                             id={`brand-${brand}`}
-                            checked={selectedBrands.includes(brand)}
-                            onCheckedChange={(checked) => handleBrandChange(brand, checked as boolean)}
+                            checked={selectedBrands.includes(brand!)}
+                            onCheckedChange={(checked) => handleBrandChange(brand!, checked as boolean)}
                           />
                           <Label htmlFor={`brand-${brand}`} className="text-sm">
                             {brand}
@@ -524,12 +427,12 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
                   <div>
                     <Label className="text-sm font-medium">Color</Label>
                     <div className="mt-2 space-y-2">
-                      {colors.map((color) => (
+                      {colors.filter(color => color).map((color) => (
                         <div key={color} className="flex items-center space-x-2">
                           <Checkbox
                             id={`color-${color}`}
-                            checked={selectedColors.includes(color)}
-                            onCheckedChange={(checked) => handleColorChange(color, checked as boolean)}
+                            checked={selectedColors.includes(color!)}
+                            onCheckedChange={(checked) => handleColorChange(color!, checked as boolean)}
                           />
                           <Label htmlFor={`color-${color}`} className="text-sm">
                             {color}
@@ -543,12 +446,12 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
                   <div>
                     <Label className="text-sm font-medium">Condition</Label>
                     <div className="mt-2 space-y-2">
-                      {conditions.map((condition) => (
+                      {conditions.filter(condition => condition).map((condition) => (
                         <div key={condition} className="flex items-center space-x-2">
                           <Checkbox
                             id={`condition-${condition}`}
-                            checked={selectedConditions.includes(condition)}
-                            onCheckedChange={(checked) => handleConditionChange(condition, checked as boolean)}
+                            checked={selectedConditions.includes(condition!)}
+                            onCheckedChange={(checked) => handleConditionChange(condition!, checked as boolean)}
                           />
                           <Label htmlFor={`condition-${condition}`} className="text-sm">
                             {condition}
@@ -662,69 +565,113 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
 
             {/* Products Grid View */}
             {viewMode === "grid" && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
-                {filteredProducts.map((product) => (
-                  <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                    <div className="aspect-square bg-gray-100 relative">
-                      <Package className="h-16 w-16 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
-                      <Button 
-                        size="sm" 
-                        variant={isProductInWishlist(product.id) ? "default" : "outline"}
-                        className="absolute top-2 right-2"
-                        onClick={() => toggleWishlist(product)}
-                      >
-                        <Heart className={`h-4 w-4 ${isProductInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
-                      </Button>
-                    </div>
-                    <CardContent className="p-4">
-                      <div className="mb-2">
-                        <h3 className="font-semibold text-sm truncate">{product.name}</h3>
-                        <p className="text-xs text-gray-500 truncate">{product.brand} • {product.color}</p>
-                      </div>
-                      
-                      <div className="flex items-center gap-1 mb-2">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs">{product.rating}</span>
-                        <span className="text-xs text-gray-500">({product.reviews})</span>
-                      </div>
-
-                      <div className="text-lg font-bold mb-2">
-                        ${product.pricing.daily}/day
-                      </div>
-
-                      <Badge variant={getAvailabilityColor(product.availability)} className="mb-3 text-xs">
-                        {product.availability}
-                      </Badge>
-
-                      <div className="space-y-2">
-                        <Button size="sm" className="w-full" onClick={() => handleProductClick(product)}>
-                          <Eye className="h-3 w-3 mr-1" />
-                          View Details
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          className="w-full" 
-                          onClick={() => addToCart(product)}
-                          variant={isProductInCart(product.id) ? "secondary" : "default"}
-                          disabled={isProductInCart(product.id)}
-                        >
-                          {isProductInCart(product.id) ? (
-                            <>
-                              <CheckCircle className="h-3 w-3 mr-1" />
-                              Added to Cart
-                            </>
+              <>
+                {productsLoading ? (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+                    {[...Array(8)].map((_, i) => (
+                      <Card key={i} className="overflow-hidden">
+                        <div className="aspect-square bg-gray-100 relative">
+                          <Loader2 className="h-8 w-8 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-spin" />
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="space-y-2">
+                            <div className="h-4 bg-gray-200 rounded animate-pulse"></div>
+                            <div className="h-3 bg-gray-200 rounded animate-pulse w-2/3"></div>
+                            <div className="h-6 bg-gray-200 rounded animate-pulse w-1/2"></div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : productsError ? (
+                  <div className="text-center py-12">
+                    <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Failed to load products</h3>
+                    <p className="text-gray-600 mb-4">{productsError}</p>
+                    <Button onClick={() => fetchProducts()}>Try Again</Button>
+                  </div>
+                ) : filteredProducts.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Package className="h-16 w-16 text-gray-400 mx-auto mb-4" />
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">No products found</h3>
+                    <p className="text-gray-600">Try adjusting your filters or search terms.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+                    {filteredProducts.map((product) => (
+                      <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                        <div className="aspect-square bg-gray-100 relative">
+                          {product.image ? (
+                            <img
+                              src={product.image}
+                              alt={product.name}
+                              className="w-full h-full object-cover"
+                            />
                           ) : (
-                            <>
-                              <Plus className="h-3 w-3 mr-1" />
-                              Add to Cart
-                            </>
+                            <Package className="h-16 w-16 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
                           )}
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
+                          <Button 
+                            size="sm" 
+                            variant={isProductInWishlist(product.id) ? "default" : "outline"}
+                            className="absolute top-2 right-2"
+                            onClick={() => toggleWishlist(product)}
+                          >
+                            <Heart className={`h-4 w-4 ${isProductInWishlist(product.id) ? 'fill-red-500 text-red-500' : ''}`} />
+                          </Button>
+                        </div>
+                        <CardContent className="p-4">
+                          <div className="mb-2">
+                            <h3 className="font-semibold text-sm truncate">{product.name}</h3>
+                            <p className="text-xs text-gray-500 truncate">{product.brand} • {product.color}</p>
+                          </div>
+                          
+                          {product.rating && (
+                            <div className="flex items-center gap-1 mb-2">
+                              <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                              <span className="text-xs">{product.rating}</span>
+                              {product.reviews && <span className="text-xs text-gray-500">({product.reviews})</span>}
+                            </div>
+                          )}
+
+                          <div className="text-lg font-bold mb-2">
+                            ${product.pricing?.daily || product.basePrice}/day
+                          </div>
+
+                          <Badge variant={product.availability === "available" ? "default" : product.availability === "limited" ? "secondary" : "destructive"} className="mb-3 text-xs">
+                            {product.availability}
+                          </Badge>
+
+                          <div className="space-y-2">
+                            <Button size="sm" className="w-full" onClick={() => handleProductClick(product)}>
+                              <Eye className="h-3 w-3 mr-1" />
+                              View Details
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              className="w-full" 
+                              onClick={() => addToCart(product)}
+                              variant={isProductInCart(product.id) ? "secondary" : "default"}
+                              disabled={isProductInCart(product.id) || product.availability === "unavailable"}
+                            >
+                              {isProductInCart(product.id) ? (
+                                <>
+                                  <CheckCircle className="h-3 w-3 mr-1" />
+                                  Added to Cart
+                                </>
+                              ) : (
+                                <>
+                                  <Plus className="h-3 w-3 mr-1" />
+                                  Add to Cart
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
 
             {/* Products List View */}

@@ -8,6 +8,8 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
+import { useAuth } from "@/hooks/use-api"
+import { toast } from "sonner"
 import { 
   User, 
   Users, 
@@ -19,7 +21,8 @@ import {
   ShoppingCart,
   Package,
   LogIn,
-  UserPlus
+  UserPlus,
+  Loader2
 } from "lucide-react"
 
 interface SignInProps {
@@ -30,7 +33,9 @@ interface SignInProps {
 export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
   const [activeTab, setActiveTab] = useState("customer")
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  
+  // Use API hook for authentication
+  const { login, isLoading } = useAuth()
   
   // Form states
   const [customerForm, setCustomerForm] = useState({
@@ -45,45 +50,38 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
 
   const handleCustomerSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Mock customer data
-    const customerData = {
-      id: "CUST-001",
-      name: "John Smith",
-      email: customerForm.email,
-      type: "premium",
-      joinDate: "2024-01-15",
-      totalRentals: 12,
-      currentRentals: 2
+    try {
+      const result = await login(customerForm.email, customerForm.password)
+      
+      if (result.success) {
+        toast.success("Successfully signed in!")
+        // Call the parent's onSignIn with the user data
+        onSignIn('customer', result)
+      } else {
+        toast.error(result.error || "Login failed. Please try again.")
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred. Please try again.")
     }
-    
-    onSignIn('customer', customerData)
-    setIsLoading(false)
   }
 
   const handleEndUserSignIn = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1000))
-    
-    // Mock end user data
-    const endUserData = {
-      id: "EMP-001",
-      name: "Admin User",
-      email: endUserForm.email,
-      role: "manager",
-      department: "Operations",
-      permissions: ["all"]
+    try {
+      const result = await login(endUserForm.email, endUserForm.password)
+      
+      if (result.success) {
+        toast.success("Successfully signed in!")
+        // Call the parent's onSignIn with the user data
+        onSignIn('end-user', result)
+      } else {
+        toast.error(result.error || "Login failed. Please try again.")
+      }
+    } catch (error) {
+      toast.error("An unexpected error occurred. Please try again.")
     }
-    
-    onSignIn('end-user', endUserData)
-    setIsLoading(false)
   }
 
   return (
@@ -235,7 +233,14 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
                   </div>
 
                   <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In to Customer Portal"}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      "Sign In to Customer Portal"
+                    )}
                   </Button>
                   
                   <div className="text-center">
@@ -296,7 +301,14 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
                   </div>
 
                   <Button type="submit" className="w-full bg-indigo-600 hover:bg-indigo-700" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In to End User Portal"}
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Signing In...
+                      </>
+                    ) : (
+                      "Sign In to End User Portal"
+                    )}
                   </Button>
                   
                   <div className="text-center">
@@ -320,23 +332,22 @@ export function SignIn({ onSignIn, onShowSignUp }: SignInProps) {
         {/* Demo Credentials */}
         <Card className="max-w-md mx-auto mt-6 bg-gray-50">
           <CardHeader>
-            <CardTitle className="text-sm text-center">Demo Credentials</CardTitle>
+            <CardTitle className="text-sm text-center">Test Credentials</CardTitle>
           </CardHeader>
           <CardContent className="text-xs">
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Badge variant="outline" className="mb-2">Customer</Badge>
                 <div className="space-y-1">
-                  <div>Email: customer@demo.com</div>
-                  <div>Password: demo123</div>
+                  <div>Email: admin@admin.com</div>
+                  <div>Password: admin</div>
                 </div>
               </div>
               <div>
-                <Badge variant="outline" className="mb-2">End User</Badge>
+                <Badge variant="outline" className="mb-2">Admin</Badge>
                 <div className="space-y-1">
-                  <div>ID: EMP-001</div>
-                  <div>Email: admin@demo.com</div>
-                  <div>Password: admin123</div>
+                  <div>Email: admin@admin.com</div>
+                  <div>Password: admin</div>
                 </div>
               </div>
             </div>

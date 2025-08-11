@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -20,96 +20,10 @@ import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Textarea } from "@/components/ui/textarea"
 import { Label } from "@/components/ui/label"
-import { Search, CalendarIcon, Truck, Package, MapPin, Clock, CheckCircle, ArrowRight, Phone, Mail } from "lucide-react"
+import { Search, CalendarIcon, Truck, Package, MapPin, Clock, CheckCircle, ArrowRight, Phone, Mail, Loader2 } from "lucide-react"
 import { format } from "date-fns"
-
-// Hardcoded delivery data
-const deliveries = [
-  {
-    id: "DEL-001",
-    orderId: "RO-001",
-    customer: "John Smith",
-    address: "123 Main St, New York, NY 10001",
-    phone: "+1 234-567-8901",
-    email: "john@example.com",
-    products: [{ name: "Professional Camera Kit", quantity: 1 }],
-    type: "pickup",
-    scheduledDate: "2024-01-15",
-    scheduledTime: "10:00 AM",
-    status: "scheduled",
-    driver: "Mike Johnson",
-    notes: "Customer prefers morning delivery",
-  },
-  {
-    id: "DEL-002",
-    orderId: "RO-002",
-    customer: "Sarah Johnson",
-    address: "456 Oak Ave, Brooklyn, NY 11201",
-    phone: "+1 234-567-8902",
-    email: "sarah@example.com",
-    products: [
-      { name: "Sound System Package", quantity: 1 },
-      { name: "Lighting Equipment Set", quantity: 1 },
-    ],
-    type: "pickup",
-    scheduledDate: "2024-01-20",
-    scheduledTime: "2:00 PM",
-    status: "in-transit",
-    driver: "Tom Wilson",
-    notes: "Large items - use freight elevator",
-  },
-  {
-    id: "DEL-003",
-    orderId: "RO-003",
-    customer: "Mike Wilson",
-    address: "789 Pine St, Queens, NY 11375",
-    phone: "+1 234-567-8903",
-    email: "mike@example.com",
-    products: [{ name: "Video Editing Workstation", quantity: 1 }],
-    type: "return",
-    scheduledDate: "2024-02-01",
-    scheduledTime: "11:00 AM",
-    status: "completed",
-    driver: "Mike Johnson",
-    notes: "Equipment returned in good condition",
-  },
-]
-
-const stockMovements = [
-  {
-    id: "SM-001",
-    orderId: "RO-001",
-    product: "Professional Camera Kit",
-    type: "reservation",
-    quantity: 1,
-    from: "Available Stock",
-    to: "Reserved",
-    timestamp: "2024-01-10 09:30 AM",
-    status: "completed",
-  },
-  {
-    id: "SM-002",
-    orderId: "RO-002",
-    product: "Sound System Package",
-    type: "pickup",
-    quantity: 1,
-    from: "Reserved",
-    to: "With Customer",
-    timestamp: "2024-01-20 02:15 PM",
-    status: "completed",
-  },
-  {
-    id: "SM-003",
-    orderId: "RO-003",
-    product: "Video Editing Workstation",
-    type: "return",
-    quantity: 1,
-    from: "With Customer",
-    to: "Available Stock",
-    timestamp: "2024-02-01 11:30 AM",
-    status: "completed",
-  },
-]
+import { useDeliveries } from "@/hooks/use-api"
+import { toast } from "sonner"
 
 export function DeliveryManagement() {
   const [searchTerm, setSearchTerm] = useState("")
@@ -117,6 +31,39 @@ export function DeliveryManagement() {
   const [typeFilter, setTypeFilter] = useState("all")
   const [selectedDelivery, setSelectedDelivery] = useState<any>(null)
   const [showScheduleDialog, setShowScheduleDialog] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date())
+  
+  // Use our delivery API hooks
+  const {
+    deliveries,
+    routes,
+    analytics,
+    loading,
+    error,
+    fetchDeliveries,
+    createDelivery,
+    updateDeliveryStatus,
+    fetchRoutes,
+    autoScheduleDeliveries,
+    triggerWorkflow,
+    fetchAnalytics
+  } = useDeliveries()
+
+  // Fetch data on component mount
+  useEffect(() => {
+    fetchDeliveries()
+    fetchRoutes()
+    fetchAnalytics()
+  }, [fetchDeliveries, fetchRoutes, fetchAnalytics])
+
+  // Auto-refresh deliveries every 30 seconds for real-time updates
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchDeliveries()
+    }, 30000)
+    
+    return () => clearInterval(interval)
+  }, [fetchDeliveries])
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -144,34 +91,145 @@ export function DeliveryManagement() {
     }
   }
 
-  const filteredDeliveries = deliveries.filter((delivery) => {
+  // Handle delivery status updates with automatic workflow progression
+  const handleStatusUpdate = async (deliveryId: string, newStatus: string, proof?: string) => {
+    try {
+      const result = await updateDeliveryStatus(deliveryId, newStatus, proof)
+      
+      if (result.success) {
+        toast.success(`Delivery status updated to ${newStatus}`)
+        
+        // Trigger automatic workflow progression if needed
+        const delivery = deliveries.find(d => d.id === deliveryId)
+        if (delivery && newStatus === 'completed') {
+          await handleWorkflowProgression(delivery)
+        }
+      } else {
+        toast.error(result.error || 'Failed to update delivery status')
+      }
+    } catch (error) {
+      toast.error('Failed to update delivery status')
+    }
+  }
+
+  // Handle automatic workflow progression (Reservation → Pickup → Return)
+  const handleWorkflowProgression = async (delivery: any) => {
+    try {
+      if (delivery.type === 'pickup') {
+        // After successful pickup, automatically schedule return
+        const returnDate = new Date(delivery.scheduled_date)
+        returnDate.setDate(returnDate.getDate() + 7) // Default 7-day rental
+        
+        const returnDelivery = {
+          order_id: delivery.order_id,
+          delivery_type: 'return',
+          scheduled_date: returnDate.toISOString().split('T')[0],
+          scheduled_time: delivery.scheduled_time,
+          notes: `Automatic return scheduling for order ${delivery.order_id}`
+        }
+        
+        const result = await createDelivery(returnDelivery)
+        if (result.success) {
+          toast.success('Return delivery automatically scheduled')
+        }
+      } else if (delivery.type === 'return') {
+        // After successful return, trigger stock update
+        toast.success('Product returned to available stock')
+      }
+    } catch (error) {
+      console.error('Workflow progression error:', error)
+    }
+  }
+
+  // Auto-schedule deliveries using Redis/Celery optimization
+  const handleAutoSchedule = async () => {
+    if (!selectedDate) {
+      toast.error('Please select a date for auto-scheduling')
+      return
+    }
+
+    try {
+      const dateStr = selectedDate.toISOString().split('T')[0]
+      const result = await autoScheduleDeliveries(dateStr)
+      
+      if (result.success) {
+        toast.success(`Auto-scheduled ${result.data?.scheduled_count || 0} deliveries`)
+        fetchDeliveries() // Refresh the list
+      } else {
+        toast.error(result.error || 'Failed to auto-schedule deliveries')
+      }
+    } catch (error) {
+      toast.error('Failed to auto-schedule deliveries')
+    }
+  }
+
+  // Trigger workflow for a specific order
+  const handleTriggerWorkflow = async (orderId: string) => {
+    try {
+      const result = await triggerWorkflow(orderId)
+      
+      if (result.success) {
+        toast.success('Delivery workflow triggered successfully')
+        fetchDeliveries()
+      } else {
+        toast.error(result.error || 'Failed to trigger workflow')
+      }
+    } catch (error) {
+      toast.error('Failed to trigger workflow')
+    }
+  }
+
+  // Filter deliveries based on search and filters
+  const filteredDeliveries = deliveries.filter((delivery: any) => {
     const matchesSearch =
-      delivery.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      delivery.orderId.toLowerCase().includes(searchTerm.toLowerCase())
+      delivery.customer_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      delivery.order_id?.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesStatus = statusFilter === "all" || delivery.status === statusFilter
-    const matchesType = typeFilter === "all" || delivery.type === typeFilter
+    const matchesType = typeFilter === "all" || delivery.delivery_type === typeFilter
     return matchesSearch && matchesStatus && matchesType
   })
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin" />
+        <span className="ml-2">Loading deliveries...</span>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Delivery Management</h1>
-          <p className="text-muted-foreground">Track pickups, deliveries, and returns</p>
+          <p className="text-muted-foreground">Automated workflow for pickups, deliveries, and returns</p>
         </div>
-        <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
-          <DialogTrigger asChild>
-            <Button>
-              <Truck className="h-4 w-4 mr-2" />
-              Schedule Delivery
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Schedule New Delivery</DialogTitle>
-              <DialogDescription>Schedule a pickup or return for a rental order</DialogDescription>
-            </DialogHeader>
+        <div className="flex gap-2">
+          <Button
+            onClick={handleAutoSchedule}
+            disabled={loading}
+            variant="outline"
+          >
+            {loading ? (
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            ) : (
+              <Clock className="h-4 w-4 mr-2" />
+            )}
+            Auto Schedule
+          </Button>
+          <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+            <DialogTrigger asChild>
+              <Button>
+                <Truck className="h-4 w-4 mr-2" />
+                Schedule Delivery
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-2xl">
+              <DialogHeader>
+                <DialogTitle>Schedule New Delivery</DialogTitle>
+                <DialogDescription>Schedule a pickup or return for a rental order</DialogDescription>
+              </DialogHeader>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label>Order ID</Label>
@@ -267,6 +325,7 @@ export function DeliveryManagement() {
             </div>
           </DialogContent>
         </Dialog>
+        </div>
       </div>
 
       <Tabs defaultValue="deliveries" className="space-y-6">
@@ -358,7 +417,7 @@ export function DeliveryManagement() {
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm font-medium">Products:</p>
-                      {delivery.products.map((product, index) => (
+                      {delivery.products.map((product: any, index: number) => (
                         <p key={index} className="text-sm text-muted-foreground">
                           {product.quantity}x {product.name}
                         </p>
@@ -505,37 +564,69 @@ export function DeliveryManagement() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {stockMovements.map((movement) => (
-                      <TableRow key={movement.id}>
-                        <TableCell className="font-medium">{movement.id}</TableCell>
-                        <TableCell>{movement.orderId}</TableCell>
-                        <TableCell>{movement.product}</TableCell>
-                        <TableCell>
-                          <Badge
-                            variant={
-                              movement.type === "reservation"
-                                ? "secondary"
-                                : movement.type === "pickup"
-                                  ? "default"
-                                  : "outline"
-                            }
-                          >
-                            {movement.type}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2 text-sm">
-                            <span>{movement.from}</span>
-                            <ArrowRight className="h-3 w-3" />
-                            <span>{movement.to}</span>
+                    {analytics ? (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center">
+                          <div className="space-y-4 py-8">
+                            <div className="text-center">
+                              <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+                              <h3 className="text-lg font-semibold mb-2">Automated Workflow Analytics</h3>
+                              <p className="text-muted-foreground mb-6">Real-time delivery and return statistics</p>
+                            </div>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+                              <Card>
+                                <CardContent className="p-6 text-center">
+                                  <div className="text-3xl font-bold text-blue-600">{analytics.deliveries?.total || 0}</div>
+                                  <div className="text-sm text-muted-foreground">Total Deliveries</div>
+                                </CardContent>
+                              </Card>
+                              <Card>
+                                <CardContent className="p-6 text-center">
+                                  <div className="text-3xl font-bold text-green-600">{analytics.deliveries?.completed || 0}</div>
+                                  <div className="text-sm text-muted-foreground">Completed</div>
+                                </CardContent>
+                              </Card>
+                              <Card>
+                                <CardContent className="p-6 text-center">
+                                  <div className="text-3xl font-bold text-orange-600">{analytics.returns?.total || 0}</div>
+                                  <div className="text-sm text-muted-foreground">Returns</div>
+                                </CardContent>
+                              </Card>
+                              <Card>
+                                <CardContent className="p-6 text-center">
+                                  <div className="text-3xl font-bold text-red-600">{analytics.returns?.overdue || 0}</div>
+                                  <div className="text-sm text-muted-foreground">Overdue</div>
+                                </CardContent>
+                              </Card>
+                            </div>
+                            <div className="mt-6">
+                              <Button 
+                                onClick={() => fetchAnalytics()}
+                                disabled={loading}
+                                variant="outline"
+                                size="sm"
+                              >
+                                {loading ? (
+                                  <>
+                                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                    Refreshing...
+                                  </>
+                                ) : (
+                                  'Refresh Analytics'
+                                )}
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm">{movement.timestamp}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline">{movement.status}</Badge>
+                      </TableRow>
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8">
+                          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                          <div className="text-muted-foreground">Loading analytics...</div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )}
                   </TableBody>
                 </Table>
               </div>

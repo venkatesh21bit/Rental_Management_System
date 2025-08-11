@@ -12,4 +12,14 @@ app_name = 'deliveries'
 
 urlpatterns = [
     path('', include(router.urls)),
+    
+    # Automated workflow endpoints
+    path('overview/', views.delivery_overview, name='delivery_overview'),
+    path('delivery/<uuid:delivery_id>/status/', views.update_delivery_status, name='update_delivery_status'),
+    path('return/<uuid:return_id>/status/', views.update_return_status, name='update_return_status'),
+    
+    # Auto-scheduling and workflow endpoints are in the viewset actions:
+    # POST /deliveries/routes/auto_schedule/ - Auto-schedule deliveries
+    # POST /deliveries/routes/trigger_workflow/ - Trigger delivery workflow
+    # GET /deliveries/routes/analytics/ - Get delivery analytics
 ]

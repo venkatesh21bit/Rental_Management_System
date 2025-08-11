@@ -9,6 +9,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
+import { useAuth } from "@/hooks/use-api"
+import { toast } from "sonner"
 import { 
   User, 
   Users, 
@@ -23,7 +25,8 @@ import {
   Phone,
   MapPin,
   Calendar,
-  ArrowLeft
+  ArrowLeft,
+  Loader2
 } from "lucide-react"
 
 interface SignUpProps {
@@ -36,6 +39,7 @@ export function SignUp({ onSignUp, onBackToSignIn }: SignUpProps) {
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const { register } = useAuth()
   
   // Customer form state
   const [customerForm, setCustomerForm] = useState({
@@ -70,68 +74,122 @@ export function SignUp({ onSignUp, onBackToSignIn }: SignUpProps) {
     e.preventDefault()
     
     if (customerForm.password !== customerForm.confirmPassword) {
-      alert("Passwords don't match!")
+      toast.error("Passwords don't match!")
       return
     }
     
     if (!customerForm.agreeToTerms) {
-      alert("Please agree to the terms and conditions")
+      toast.error("Please agree to the terms and conditions")
       return
     }
     
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // Mock customer data
-    const customerData = {
-      id: `CUST-${Date.now()}`,
-      name: `${customerForm.firstName} ${customerForm.lastName}`,
-      email: customerForm.email,
-      phone: customerForm.phone,
-      address: customerForm.address,
-      type: "standard",
-      joinDate: new Date().toISOString().split('T')[0],
-      totalRentals: 0,
-      currentRentals: 0
+    try {
+      const registrationData = {
+        username: customerForm.email, // Use email as username
+        email: customerForm.email,
+        password: customerForm.password,
+        first_name: customerForm.firstName,
+        last_name: customerForm.lastName,
+        phone: customerForm.phone,
+        address: `${customerForm.address}, ${customerForm.city}, ${customerForm.zipCode}`,
+        user_type: 'customer'
+      }
+
+      const response = await register(registrationData)
+      
+      if (response.success) {
+        toast.success('Customer account created successfully!')
+        // Create customer data for parent component - use current user state
+        const customerData = {
+          id: `CUST-${Date.now()}`, // fallback ID
+          name: `${customerForm.firstName} ${customerForm.lastName}`,
+          email: customerForm.email,
+          phone: customerForm.phone,
+          address: `${customerForm.address}, ${customerForm.city}, ${customerForm.zipCode}`,
+          type: "standard",
+          joinDate: new Date().toISOString().split('T')[0],
+          totalRentals: 0,
+          currentRentals: 0
+        }
+        
+        onSignUp('customer', customerData)
+      } else {
+        throw new Error(response.error || 'Registration failed')
+      }
+    } catch (error) {
+      console.error('Customer registration error:', error)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error('Registration failed. Please try again.')
+      }
+    } finally {
+      setIsLoading(false)
     }
-    
-    onSignUp('customer', customerData)
-    setIsLoading(false)
   }
 
   const handleEndUserSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
     
     if (endUserForm.password !== endUserForm.confirmPassword) {
-      alert("Passwords don't match!")
+      toast.error("Passwords don't match!")
       return
     }
     
     if (!endUserForm.agreeToTerms) {
-      alert("Please agree to the terms and conditions")
+      toast.error("Please agree to the terms and conditions")
       return
     }
     
     setIsLoading(true)
     
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 1500))
-    
-    // Mock end user data
-    const endUserData = {
-      id: `EMP-${Date.now()}`,
-      name: `${endUserForm.firstName} ${endUserForm.lastName}`,
-      email: endUserForm.email,
-      employeeId: endUserForm.employeeId,
-      role: endUserForm.role,
-      department: endUserForm.department,
-      permissions: ["read", "write"]
+    try {
+      const registrationData = {
+        username: endUserForm.email, // Use email as username
+        email: endUserForm.email,
+        password: endUserForm.password,
+        first_name: endUserForm.firstName,
+        last_name: endUserForm.lastName,
+        phone: endUserForm.phone,
+        address: `${endUserForm.department} - ${endUserForm.role}`, // Store department/role in address field
+        user_type: 'end_user',
+        // Add custom fields for end user
+        employee_id: endUserForm.employeeId,
+        department: endUserForm.department,
+        role: endUserForm.role
+      }
+
+      const response = await register(registrationData)
+      
+      if (response.success) {
+        toast.success('End user account created successfully!')
+        // Create end user data for parent component
+        const endUserData = {
+          id: `EMP-${Date.now()}`, // fallback ID
+          name: `${endUserForm.firstName} ${endUserForm.lastName}`,
+          email: endUserForm.email,
+          employeeId: endUserForm.employeeId,
+          role: endUserForm.role,
+          department: endUserForm.department,
+          permissions: ["read", "write"]
+        }
+        
+        onSignUp('end-user', endUserData)
+      } else {
+        throw new Error(response.error || 'Registration failed')
+      }
+    } catch (error) {
+      console.error('End user registration error:', error)
+      if (error instanceof Error) {
+        toast.error(error.message)
+      } else {
+        toast.error('Registration failed. Please try again.')
+      }
+    } finally {
+      setIsLoading(false)
     }
-    
-    onSignUp('end-user', endUserData)
-    setIsLoading(false)
   }
 
   return (
@@ -354,7 +412,10 @@ export function SignUp({ onSignUp, onBackToSignIn }: SignUpProps) {
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
-                      <>Creating Account...</>
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating Account...
+                      </>
                     ) : (
                       <>
                         <UserPlus className="h-4 w-4 mr-2" />
@@ -527,7 +588,10 @@ export function SignUp({ onSignUp, onBackToSignIn }: SignUpProps) {
 
                   <Button type="submit" className="w-full" disabled={isLoading}>
                     {isLoading ? (
-                      <>Creating Account...</>
+                      <>
+                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        Creating Account...
+                      </>
                     ) : (
                       <>
                         <UserPlus className="h-4 w-4 mr-2" />
