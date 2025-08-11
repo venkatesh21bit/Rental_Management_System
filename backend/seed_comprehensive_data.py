@@ -1,7 +1,14 @@
 #!/usr/bin/env python
 """
 Comprehensive Data Seeding Script for Rental Management System
-Run this script to populate your database with sample data
+Run this script to populate your    for name, description, discount in customer_groups_data:
+        CustomerGroup.objects.get_or_create(
+            name=name,
+            defaults={
+                'description': description,
+                'discount_percent': Decimal(discount)
+            }
+        )e with sample data
 """
 
 import os
