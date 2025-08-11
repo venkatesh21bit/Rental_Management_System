@@ -28,7 +28,11 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-&zt-tj-)*zxk!7a*656xk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
+# ALLOWED_HOSTS configuration - always include Railway URL
 ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+# Always ensure Railway URL is included
+if 'rentalmanagementsystem-production.up.railway.app' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('rentalmanagementsystem-production.up.railway.app')
 
 
 # Application definition
@@ -225,6 +229,12 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Next.js default development server
     "http://127.0.0.1:3000",
+    "https://rentalmanagementsystem-production.up.railway.app",  # Railway production URL
+]
+
+# CSRF trusted origins for Railway deployment
+CSRF_TRUSTED_ORIGINS = [
+    "https://rentalmanagementsystem-production.up.railway.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
@@ -258,15 +268,15 @@ EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
 EMAIL_USE_SSL = config('EMAIL_USE_SSL', default=False, cast=bool)
-EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='rentalmanagement2024@gmail.com')
-EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='')
-DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Rental Management System <rentalmanagement2024@gmail.com>')
-DEFAULT_REPLY_TO_EMAIL = config('DEFAULT_REPLY_TO_EMAIL', default='rentalmanagement2024@gmail.com')
+EMAIL_HOST_USER = config('EMAIL_HOST_USER', default='venkatesh.k21062005@gmail.com')
+EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD', default='ywqc fghh kgdv kaqe')
+DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default='Rental Management System <venkatesh.k21062005@gmail.com>')
+DEFAULT_REPLY_TO_EMAIL = config('DEFAULT_REPLY_TO_EMAIL', default='venkatesh.k21062005@gmail.com')
 
 # Company information for emails
 COMPANY_NAME = config('COMPANY_NAME', default='Rental Management System')
-COMPANY_PHONE = config('COMPANY_PHONE', default='+91-9876543210')
-COMPANY_ADDRESS = config('COMPANY_ADDRESS', default='Delhi, India')
+COMPANY_PHONE = config('COMPANY_PHONE', default='+91-9025447567')
+COMPANY_ADDRESS = config('COMPANY_ADDRESS', default='Gujarat, India')
 WEBSITE_URL = config('WEBSITE_URL', default='https://rentalmanagement.com')
 
 # Email validation and fallback

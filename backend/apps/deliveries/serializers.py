@@ -25,7 +25,7 @@ class DeliveryItemSerializer(serializers.ModelSerializer):
 
 
 class DeliveryDocumentSerializer(serializers.ModelSerializer):
-    order = RentalOrderSerializer(read_only=True)
+    order = RentalOrderSerializer(source='reservation.order', read_only=True)
     order_id = serializers.UUIDField(write_only=True)
     items = DeliveryItemSerializer(many=True, read_only=True)
     driver_name = serializers.CharField(source='driver.get_full_name', read_only=True)
@@ -33,11 +33,11 @@ class DeliveryDocumentSerializer(serializers.ModelSerializer):
     class Meta:
         model = DeliveryDocument
         fields = [
-            'id', 'document_number', 'order', 'order_id', 'delivery_type',
-            'status', 'scheduled_datetime', 'actual_delivery_datetime',
-            'delivery_address', 'driver', 'driver_name', 'vehicle_info',
-            'customer_signature', 'driver_signature', 'gps_coordinates',
-            'delivery_notes', 'proof_of_delivery', 'created_at', 'updated_at',
+            'id', 'document_number', 'order', 'order_id', 'document_type',
+            'status', 'scheduled_datetime', 'completed_at',
+            'delivery_address', 'driver', 'driver_name', 'vehicle',
+            'customer_signature', 'driver_signature', 'current_latitude', 'current_longitude',
+            'notes', 'photos', 'created_at', 'updated_at',
             'items'
         ]
         read_only_fields = [
@@ -118,7 +118,7 @@ class DeliveryRouteSerializer(serializers.ModelSerializer):
 class DeliveryScheduleSerializer(serializers.Serializer):
     """Serializer for delivery scheduling requests"""
     order_id = serializers.UUIDField()
-    delivery_type = serializers.ChoiceField(choices=DeliveryDocument.DeliveryType.choices)
+    delivery_type = serializers.ChoiceField(choices=DeliveryDocument.DocumentType.choices)
     scheduled_datetime = serializers.DateTimeField()
     delivery_address = serializers.CharField()
     driver_id = serializers.UUIDField(required=False)
@@ -130,9 +130,9 @@ class DeliveryStatusUpdateSerializer(serializers.Serializer):
     """Serializer for delivery status updates"""
     status = serializers.ChoiceField(choices=DeliveryDocument.Status.choices)
     actual_delivery_datetime = serializers.DateTimeField(required=False)
-    gps_coordinates = serializers.CharField(required=False, allow_blank=True)
+    gps_coordinates = serializers.DictField(required=False)
     delivery_notes = serializers.CharField(required=False, allow_blank=True)
-    proof_of_delivery = serializers.FileField(required=False)
+    proof_of_delivery = serializers.CharField(required=False)
 
 
 class ReturnProcessSerializer(serializers.Serializer):
@@ -140,7 +140,14 @@ class ReturnProcessSerializer(serializers.Serializer):
     items = serializers.ListField(
         child=serializers.DictField(child=serializers.CharField())
     )
-    overall_condition = serializers.ChoiceField(choices=ReturnDocument.OverallCondition.choices)
+    overall_condition = serializers.ChoiceField(choices=[
+        ('excellent', 'Excellent'),
+        ('good', 'Good'),
+        ('fair', 'Fair'),
+        ('poor', 'Poor'),
+        ('damaged', 'Damaged'),
+        ('missing', 'Missing')
+    ])
     return_notes = serializers.CharField(required=False, allow_blank=True)
     damage_assessment = serializers.CharField(required=False, allow_blank=True)
     late_fee_applicable = serializers.BooleanField(default=False)

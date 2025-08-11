@@ -9,8 +9,8 @@ import secrets
 import string
 
 from .models import (
-    APIKey, Integration, WebhookEndpoint, APILog,
-    RateLimitRule, ExternalSystem
+    APIKey, ExternalIntegration, WebhookEndpoint, APIRequest,
+    APIRateLimit, WebhookDelivery
 )
 from .serializers import (
     APIKeySerializer, IntegrationSerializer, WebhookEndpointSerializer,
@@ -108,13 +108,13 @@ class APIKeyViewSet(viewsets.ModelViewSet):
 
 
 class IntegrationViewSet(viewsets.ModelViewSet):
-    queryset = Integration.objects.all()
+    queryset = ExternalIntegration.objects.all()
     serializer_class = IntegrationSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if not self.request.user.is_staff:
-            return Integration.objects.none()
+            return ExternalIntegration.objects.none()
         
         queryset = super().get_queryset().select_related('system')
         
@@ -214,13 +214,13 @@ class WebhookEndpointViewSet(viewsets.ModelViewSet):
 
 
 class APILogViewSet(viewsets.ReadOnlyModelViewSet):
-    queryset = APILog.objects.all()
+    queryset = APIRequest.objects.all()
     serializer_class = APILogSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if not self.request.user.is_staff:
-            return APILog.objects.none()
+            return APIRequest.objects.none()
         
         queryset = super().get_queryset().select_related('api_key')
         
@@ -242,25 +242,25 @@ class APILogViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class RateLimitRuleViewSet(viewsets.ModelViewSet):
-    queryset = RateLimitRule.objects.all()
+    queryset = APIRateLimit.objects.all()
     serializer_class = RateLimitRuleSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if not self.request.user.is_staff:
-            return RateLimitRule.objects.none()
+            return APIRateLimit.objects.none()
         
         return super().get_queryset().order_by('-created_at')
 
 
 class ExternalSystemViewSet(viewsets.ModelViewSet):
-    queryset = ExternalSystem.objects.all()
+    queryset = WebhookDelivery.objects.all()
     serializer_class = ExternalSystemSerializer
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
         if not self.request.user.is_staff:
-            return ExternalSystem.objects.none()
+            return WebhookDelivery.objects.none()
         
         return super().get_queryset().order_by('name')
     
@@ -274,27 +274,29 @@ class ExternalSystemViewSet(viewsets.ModelViewSet):
             }, status=status.HTTP_403_FORBIDDEN)
         
         total_api_keys = APIKey.objects.count()
-        active_integrations = Integration.objects.filter(status='ACTIVE').count()
+        active_integrations = ExternalIntegration.objects.filter(status='ACTIVE').count()
         webhook_endpoints = WebhookEndpoint.objects.count()
         
         # API requests today
         today = timezone.now().date()
-        api_requests_today = APILog.objects.filter(created_at__date=today).count()
+        api_requests_today = APIRequest.objects.filter(created_at__date=today).count()
         
         # API requests this month
         current_month = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
-        api_requests_this_month = APILog.objects.filter(created_at__gte=current_month).count()
+        api_requests_this_month = APIRequest.objects.filter(created_at__gte=current_month).count()
         
-        # Average response time
-        avg_response_time = APILog.objects.aggregate(avg=Avg('response_time'))['avg'] or 0
+        # Average response time (using completed_at - created_at as proxy)
+        avg_response_time = APIRequest.objects.aggregate(
+            avg=Avg('updated_at') - Avg('created_at')
+        )['avg'] or 0
         
         # Error rate
-        total_requests = APILog.objects.count()
-        error_requests = APILog.objects.filter(status_code__gte=400).count()
+        total_requests = APIRequest.objects.count()
+        error_requests = APIRequest.objects.filter(status='ERROR').count()
         error_rate = (error_requests / total_requests * 100) if total_requests > 0 else 0
         
         # Top endpoints
-        top_endpoints = list(APILog.objects.values('endpoint').annotate(
+        top_endpoints = list(APIRequest.objects.values('endpoint').annotate(
             count=Count('id')
         ).order_by('-count')[:5])
         

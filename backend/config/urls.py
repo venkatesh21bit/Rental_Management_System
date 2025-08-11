@@ -18,9 +18,12 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.shortcuts import redirect
 from apps.api import utils_views
 
 urlpatterns = [
+    # Root URL redirects to admin login
+    path('', lambda request: redirect('admin:login'), name='root'),
     path('admin/', admin.site.urls),
     
     # Authentication and User Management

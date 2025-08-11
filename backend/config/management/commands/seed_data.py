@@ -1,7 +1,17 @@
+"""
+Management command to seed comprehensive sample data
+"""
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
-from django.db import connection
-from django.core.management.color import no_style
+from apps.accounts.models import UserProfile, CustomerGroup
+from apps.catalog.models import ProductCategory, Product, ProductImage, ProductItem
+from apps.pricing.models import PriceList, PriceRule, Discount, LoyaltyProgram
+from apps.orders.models import RentalQuote, RentalOrder, OrderItem
+from apps.deliveries.models import DeliveryDocument
+from apps.invoicing.models import Invoice, TaxRate
+from apps.payments.models import PaymentProvider, Payment
+from apps.notifications.models import NotificationTemplate
+from apps.reports.models import ScheduledReport
 from decimal import Decimal
 from datetime import datetime, timedelta
 from django.utils import timezone
@@ -10,90 +20,26 @@ User = get_user_model()
 
 
 class Command(BaseCommand):
-    help = 'Setup the database with initial data'
-
-    def add_arguments(self, parser):
-        parser.add_argument(
-            '--reset',
-            action='store_true',
-            help='Reset the database before setup',
-        )
-        parser.add_argument(
-            '--seed',
-            action='store_true',
-            help='Seed comprehensive sample data',
-        )
+    help = 'Seed comprehensive sample data for the rental management system'
 
     def handle(self, *args, **options):
-        self.stdout.write(self.style.SUCCESS('Starting database setup...'))
-
-        if options['reset']:
-            self.reset_database()
-
-        # Run migrations
-        self.stdout.write('Running migrations...')
-        from django.core.management import call_command
-        call_command('migrate')
-
-        # Create superuser if it doesn't exist
-        self.create_superusers()
+        self.stdout.write('🚀 Starting comprehensive data seeding...')
         
-        # Seed comprehensive data if requested
-        if options['seed']:
-            self.seed_comprehensive_data()
-
-        self.stdout.write(self.style.SUCCESS('Database setup completed successfully!'))
-
-    def reset_database(self):
-        """Reset the database"""
-        self.stdout.write('Resetting database...')
-        
-        # Get all table names
-        with connection.cursor() as cursor:
-            style = no_style()
-            sql = connection.ops.sql_flush(style, connection.introspection.table_names())
-            for query in sql:
-                cursor.execute(query)
-
-    def create_superusers(self):
-        """Create default superusers"""
-        self.stdout.write('Creating superusers...')
-
-        # Create admin user
-        if not User.objects.filter(username='admin').exists():
-            User.objects.create_superuser(
-                username='admin',
-                email='admin@example.com',
-                password='admin123'
-            )
-            self.stdout.write(self.style.SUCCESS('Created admin user (admin/admin123)'))
-
-        # Create custom user
-        if not User.objects.filter(username='venkatesh').exists():
-            User.objects.create_superuser(
-                username='venkatesh',
-                email='venkatesh@example.com',
-                password='venkat*2005'
-            )
-            self.stdout.write(self.style.SUCCESS('Created venkatesh user (venkatesh/venkat*2005)'))
-
-        self.stdout.write(self.style.SUCCESS('Superusers created successfully!'))
-
-    def seed_comprehensive_data(self):
-        """Seed comprehensive sample data"""
-        self.stdout.write('🚀 Seeding comprehensive sample data...')
-        
-        try:
-            from apps.accounts.models import UserProfile, CustomerGroup
-            from apps.catalog.models import ProductCategory, Product, ProductImage, ProductItem
-            from apps.pricing.models import PriceList, PriceRule, Discount, LoyaltyProgram
-            from apps.invoicing.models import TaxRate
-            from apps.payments.models import PaymentProvider
-            from apps.notifications.models import NotificationTemplate
-            from apps.deliveries.models import DeliveryDocument
-        except ImportError as e:
-            self.stdout.write(self.style.ERROR(f'Import error: {e}'))
-            return
+        # Create admin user if not exists
+        admin_user, created = User.objects.get_or_create(
+            username='admin',
+            defaults={
+                'email': 'admin@rental.com',
+                'first_name': 'System',
+                'last_name': 'Administrator',
+                'is_staff': True,
+                'is_superuser': True
+            }
+        )
+        if created:
+            admin_user.set_password('admin123')
+            admin_user.save()
+            self.stdout.write('✅ Admin user created')
         
         # Create sample customers
         customers_data = [
@@ -137,6 +83,8 @@ class Command(BaseCommand):
             ('Vehicles', 'Cars, bikes, and transportation'),
             ('Sports & Recreation', 'Sports equipment and recreational items'),
             ('Events & Parties', 'Party supplies and event equipment'),
+            ('Construction', 'Construction tools and machinery'),
+            ('Photography', 'Cameras and photography equipment'),
         ]
         
         categories = []
@@ -164,6 +112,8 @@ class Command(BaseCommand):
             ('Tesla Model 3', 'Electric luxury sedan', categories[3]),
             ('Professional Bike', 'High-end mountain bike', categories[4]),
             ('DJ Sound System', 'Professional audio system', categories[5]),
+            ('Mini Excavator', 'Compact excavator for construction', categories[6]),
+            ('Studio Lighting Kit', 'Professional studio lighting', categories[7]),
         ]
         
         products = []
@@ -206,21 +156,23 @@ class Command(BaseCommand):
         
         self.stdout.write(f'✅ Created {item_count} product items')
         
-        # Create basic business data
-        self._create_tax_rates()
-        self._create_payment_providers()
-        self._create_notification_templates()
-        # Note: Document types are choices in DeliveryDocument model
+        # Create customer groups
+        customer_groups_data = [
+            ('VIP Customers', 'Premium customers with special benefits', 15.0),
+            ('Regular Customers', 'Standard customer group', 5.0),
+            ('Corporate Clients', 'Business customers', 10.0),
+        ]
         
-        self.stdout.write(self.style.SUCCESS('✅ Comprehensive sample data created!'))
-        self.stdout.write('🎯 Login credentials:')
-        self.stdout.write('   Admin: admin / admin123')
-        self.stdout.write('   Customer: john_doe / customer123')
-    
-    def _create_tax_rates(self):
-        """Create sample tax rates"""
-        from apps.invoicing.models import TaxRate
+        for name, description, discount in customer_groups_data:
+            CustomerGroup.objects.get_or_create(
+                name=name,
+                defaults={
+                    'description': description,
+                    'discount_percentage': Decimal(discount)
+                }
+            )
         
+        # Create tax rates
         tax_rates_data = [
             ('VAT', 'Value Added Tax', 18.0),
             ('GST', 'Goods and Services Tax', 12.0),
@@ -236,15 +188,13 @@ class Command(BaseCommand):
                     'is_active': True,
                 }
             )
-    
-    def _create_payment_providers(self):
-        """Create sample payment providers"""
-        from apps.payments.models import PaymentProvider
         
+        # Create payment providers
         providers_data = [
             ('Stripe', 'stripe', 'Credit/Debit cards via Stripe'),
             ('Razorpay', 'razorpay', 'Indian payment gateway'),
             ('PayPal', 'paypal', 'International payments via PayPal'),
+            ('Bank Transfer', 'bank_transfer', 'Direct bank transfers'),
         ]
         
         for name, provider_type, description in providers_data:
@@ -255,17 +205,17 @@ class Command(BaseCommand):
                     'description': description,
                     'is_active': True,
                     'api_key': f'test_key_{provider_type}',
+                    'webhook_url': f'https://your-app.railway.app/api/payments/webhooks/{provider_type}/',
                 }
             )
-    
-    def _create_notification_templates(self):
-        """Create sample notification templates"""
-        from apps.notifications.models import NotificationTemplate
         
+        # Create notification templates
         templates_data = [
-            ('ORDER_CONFIRMATION', 'Order Confirmation', 'Your order has been confirmed'),
-            ('PAYMENT_RECEIVED', 'Payment Received', 'Payment received successfully'),
-            ('DELIVERY_SCHEDULED', 'Delivery Scheduled', 'Your delivery is scheduled'),
+            ('ORDER_CONFIRMATION', 'Order Confirmation', 'Your order #{order_id} has been confirmed'),
+            ('PAYMENT_RECEIVED', 'Payment Received', 'Payment of ${amount} received successfully'),
+            ('DELIVERY_SCHEDULED', 'Delivery Scheduled', 'Your delivery is scheduled for {delivery_date}'),
+            ('RETURN_REMINDER', 'Return Reminder', 'Please return your rental items by {return_date}'),
+            ('INVOICE_GENERATED', 'Invoice Generated', 'Invoice #{invoice_id} is ready'),
         ]
         
         for template_type, subject, body in templates_data:
@@ -278,6 +228,20 @@ class Command(BaseCommand):
                     'is_active': True,
                 }
             )
-    
+        
+        # Create document types
         # Note: DocumentType is a choices class in DeliveryDocument, not a separate model
         # Document types are handled by DeliveryDocument.DocumentType choices
+        
+        # Summary
+        self.stdout.write(self.style.SUCCESS('✅ Sample data creation completed!'))
+        self.stdout.write(f'   - {User.objects.count()} users created')
+        self.stdout.write(f'   - {ProductCategory.objects.count()} categories created')
+        self.stdout.write(f'   - {Product.objects.count()} products created')
+        self.stdout.write(f'   - {ProductItem.objects.count()} product items created')
+        self.stdout.write(f'   - {NotificationTemplate.objects.count()} notification templates created')
+        self.stdout.write(f'   - {PaymentProvider.objects.count()} payment providers configured')
+        
+        self.stdout.write(self.style.SUCCESS('\n🎯 Ready to use credentials:'))
+        self.stdout.write('   Admin: username="admin", password="admin123"')
+        self.stdout.write('   Customer: username="john_doe", password="customer123"')
