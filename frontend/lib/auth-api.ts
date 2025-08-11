@@ -77,11 +77,14 @@ export class AuthApiService {
   
   // Login user
   async login(credentials: LoginRequest): Promise<ApiResponse<LoginResponse>> {
+    console.log('AuthApiService.login called with:', credentials.email)
     const response = await apiService.post<LoginResponse>('/auth/login/', credentials)
+    console.log('AuthApiService.login response:', response)
     
     if (response.success && response.data) {
       // Store tokens in localStorage - handle both refreshToken and refresh_token
       const refreshToken = response.data.refreshToken || response.data.refresh_token
+      console.log('Storing tokens:', { token: !!response.data.token, refreshToken: !!refreshToken })
       localStorage.setItem('authToken', response.data.token)
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken)
@@ -195,12 +198,12 @@ export class AuthApiService {
 
   // Update user profile
   async updateProfile(userData: Partial<User>): Promise<ApiResponse<User>> {
-    return apiService.put<User>('/accounts/profile/update_profile/', userData)
+    return apiService.put<User>('/accounts/users/me/', userData)
   }
 
   // Get user profile data
   async getProfile(): Promise<ApiResponse<User>> {
-    return apiService.get<User>('/accounts/profile/me/')
+    return apiService.get<User>('/accounts/users/me/')
   }
 
   // Get user statistics

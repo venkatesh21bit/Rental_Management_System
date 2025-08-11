@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -75,6 +75,16 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
   // Wishlist state
   const [wishlist, setWishlist] = useState<any[]>(sharedWishlist)
 
+  // Memoize filters to prevent infinite API calls
+  const productFilters = useMemo(() => ({
+    search: searchTerm,
+    category: selectedCategory === "all" ? undefined : selectedCategory,
+    sortBy: sortBy as any,
+    sortOrder: sortBy.includes("price-high") ? "desc" as "desc" : "asc" as "asc",
+    page: 1,
+    limit: 20
+  }), [searchTerm, selectedCategory, sortBy])
+
   // API hooks
   const { 
     products, 
@@ -82,14 +92,7 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
     error: productsError, 
     pagination,
     fetchProducts 
-  } = useProducts({
-    search: searchTerm,
-    category: selectedCategory === "all" ? undefined : selectedCategory,
-    sortBy: sortBy as any,
-    sortOrder: sortBy.includes("price-high") ? "desc" : "asc",
-    page: 1,
-    limit: 20
-  })
+  } = useProducts(productFilters)
 
   const { categories, loading: categoriesLoading } = useCategories()
   const { 
@@ -111,28 +114,15 @@ export function CustomerPortalShop({ sharedWishlist = [], onWishlistChange }: Cu
   }
 
   // Update filters and refresh products
-  useEffect(() => {
-    const delayTimer = setTimeout(() => {
-      fetchProducts({
-        search: searchTerm,
-        category: selectedCategory === "all" ? undefined : selectedCategory,
-        sortBy: sortBy as any,
-        sortOrder: sortBy.includes("price-high") ? "desc" : "asc",
-        page: 1,
-        limit: 20
-      })
-    }, 300) // Debounce search
-
-    return () => clearTimeout(delayTimer)
-  }, [searchTerm, selectedCategory, sortBy, fetchProducts])
+  // Note: Removed manual useEffect since useProducts hook handles this automatically
 
   // Extract unique values for filters from products
-  const brands = Array.from(new Set(products.map(p => p.brand).filter(Boolean)))
-  const colors = Array.from(new Set(products.map(p => p.color).filter(Boolean)))
-  const conditions = Array.from(new Set(products.map(p => p.condition).filter(Boolean)))
+  const brands = Array.from(new Set((products || []).map(p => p.brand).filter(Boolean)))
+  const colors = Array.from(new Set((products || []).map(p => p.color).filter(Boolean)))
+  const conditions = Array.from(new Set((products || []).map(p => p.condition).filter(Boolean)))
 
   // Filter products client-side for additional filters not handled by API
-  const filteredProducts = products.filter((product) => {
+  const filteredProducts = (products || []).filter((product) => {
     const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(product.brand || '')
     const matchesColor = selectedColors.length === 0 || selectedColors.includes(product.color || '')
     const matchesCondition = selectedConditions.length === 0 || selectedConditions.includes(product.condition || '')

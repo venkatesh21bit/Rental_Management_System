@@ -9,38 +9,25 @@ import { useAuth } from "@/hooks/use-api"
 
 export default function RentalManagementSystem() {
   const { isAuthenticated, user, logout, isLoading } = useAuth()
-  const [userType, setUserType] = useState<'customer' | 'end-user' | null>(null)
-  const [userData, setUserData] = useState<any>(null)
   const [showSignUp, setShowSignUp] = useState(false)
 
   // Update user data when authentication state changes
   useEffect(() => {
-    if (isAuthenticated && user) {
-      setUserData(user)
-      // Default to customer type for now - you can enhance this logic based on user role
-      setUserType('customer')
-    } else {
-      setUserData(null)
-      setUserType(null)
-    }
-  }, [isAuthenticated, user])
+    console.log('Auth state changed:', { isAuthenticated, user: !!user, isLoading })
+  }, [isAuthenticated, user, isLoading])
 
   const handleSignIn = (type: 'customer' | 'end-user', data: any) => {
-    setUserType(type)
-    setUserData(data)
+    console.log('handleSignIn called but not needed - useAuth handles state')
     setShowSignUp(false)
   }
 
   const handleSignUp = (type: 'customer' | 'end-user', data: any) => {
-    setUserType(type)
-    setUserData(data)
+    console.log('handleSignUp called but not needed - useAuth handles state') 
     setShowSignUp(false)
   }
 
   const handleSignOut = async () => {
     await logout()
-    setUserType(null)
-    setUserData(null)
     setShowSignUp(false)
   }
 
@@ -75,12 +62,9 @@ export default function RentalManagementSystem() {
   }
 
   // Show appropriate platform based on user type
-  if (userType === 'customer') {
-    return <CustomerPlatform userData={userData} onSignOut={handleSignOut} />
-  }
-
-  if (userType === 'end-user') {
-    return <EndUserPlatform userData={userData} onSignOut={handleSignOut} />
+  if (isAuthenticated && user) {
+    // Default to customer platform for now - you can enhance this based on user.profile.role
+    return <CustomerPlatform userData={user} onSignOut={handleSignOut} />
   }
 
   // Fallback

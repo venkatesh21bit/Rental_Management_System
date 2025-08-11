@@ -1,5 +1,5 @@
 // React hooks for API integration
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { authApi, User } from '@/lib/auth-api'
 import { productApi, Product, ProductFilters } from '@/lib/product-api'
 import { orderApi, cartService, RentalOrder, RentalQuote, CartItem } from '@/lib/order-api'
@@ -14,32 +14,46 @@ export function useAuth() {
   useEffect(() => {
     // Check if user is authenticated on mount
     const checkAuth = async () => {
+      console.log('useAuth: Checking authentication on mount')
       setIsLoading(true)
       try {
         const storedUser = authApi.getCurrentUser()
         const isAuth = authApi.isAuthenticated()
         
+        console.log('useAuth: Stored data check', { 
+          storedUser: !!storedUser, 
+          isAuth, 
+          hasToken: !!authApi.getAuthToken() 
+        })
+        
         if (isAuth && storedUser) {
-          // Verify token by fetching user profile
-          const response = await authApi.getProfile()
-          if (response.success && response.data) {
-            setUser(response.data)
-            setIsAuthenticated(true)
-          } else {
-            // Token invalid, clear stored data
-            await authApi.logout()
-            setUser(null)
-            setIsAuthenticated(false)
-          }
+          console.log('useAuth: Found stored auth, setting authenticated state')
+          // Just use the stored user without backend verification for now
+          setUser(storedUser)
+          setIsAuthenticated(true)
+          
+          // Optionally verify token in the background
+          authApi.getProfile().then(response => {
+            if (response.success && response.data) {
+              console.log('useAuth: Profile verification successful, updating user data')
+              setUser(response.data)
+            } else {
+              console.log('useAuth: Profile verification failed but keeping user logged in')
+            }
+          }).catch(error => {
+            console.log('useAuth: Profile verification error:', error)
+          })
         } else {
+          console.log('useAuth: No valid stored auth found')
           setUser(null)
           setIsAuthenticated(false)
         }
       } catch (error) {
-        console.error('Auth check failed:', error)
+        console.error('useAuth: Auth check failed:', error)
         setUser(null)
         setIsAuthenticated(false)
       } finally {
+        console.log('useAuth: Auth check complete')
         setIsLoading(false)
       }
     }
@@ -48,20 +62,25 @@ export function useAuth() {
   }, [])
 
   const login = useCallback(async (email: string, password: string) => {
+    console.log('Login attempt started with:', email)
     setIsLoading(true)
     try {
       const response = await authApi.login({ email, password })
+      console.log('Login response:', response)
       if (response.success && response.data) {
+        console.log('Login successful, setting user state')
         setUser(response.data.user)
         setIsAuthenticated(true)
         return { success: true }
       } else {
+        console.log('Login failed:', response.error)
         return { 
           success: false, 
           error: handleApiError(response.error) 
         }
       }
     } catch (error) {
+      console.error('Login error:', error)
       return { 
         success: false, 
         error: 'Login failed. Please try again.' 
@@ -154,22 +173,49 @@ export function useProducts(filters: ProductFilters = {}) {
     hasPrev: false
   })
 
+  // Memoize filters to prevent infinite re-renders
+  const memoizedFilters = useMemo(() => filters, [
+    filters.search,
+    filters.category,
+    filters.sortBy,
+    filters.sortOrder,
+    filters.page,
+    filters.limit,
+    filters.minPrice,
+    filters.maxPrice,
+    filters.brands,
+    filters.colors,
+    filters.conditions,
+    filters.isRentable,
+    filters.availability
+  ])
+
   const fetchProducts = useCallback(async (newFilters: ProductFilters = {}) => {
     setLoading(true)
     setError(null)
     
     try {
-      const response = await productApi.getProducts({ ...filters, ...newFilters })
+      const response = await productApi.getProducts({ ...memoizedFilters, ...newFilters })
+      console.log('useProducts: Raw API response:', response)
+      
       if (response.success && response.data) {
-        setProducts(response.data.items)
+        // Handle backend response format: data.products array and data.pagination object
+        const products = response.data.products || response.data.items || []
+        const pagination = response.data.pagination as any || {}
+        
+        console.log('useProducts: Parsed products:', products.length, 'items')
+        console.log('useProducts: Parsed pagination:', pagination)
+        
+        setProducts(products)
         setPagination({
-          total: response.data.total,
-          page: response.data.page,
-          totalPages: response.data.totalPages,
-          hasNext: response.data.hasNext,
-          hasPrev: response.data.hasPrev
+          total: pagination.total || (response.data as any).total || 0,
+          page: pagination.page || (response.data as any).page || 1,
+          totalPages: pagination.total_pages || (response.data as any).totalPages || 0,
+          hasNext: pagination.has_next || (response.data as any).hasNext || false,
+          hasPrev: pagination.has_prev || (response.data as any).hasPrev || false
         })
       } else {
+        console.log('useProducts: API response failed:', response)
         setError('Failed to fetch products')
         setProducts([])
       }
@@ -179,7 +225,7 @@ export function useProducts(filters: ProductFilters = {}) {
     } finally {
       setLoading(false)
     }
-  }, [filters])
+  }, [memoizedFilters])
 
   useEffect(() => {
     fetchProducts()
@@ -319,13 +365,13 @@ export function useOrders(filters: any = {}) {
     try {
       const response = await orderApi.getOrders({ ...filters, ...newFilters })
       if (response.success && response.data) {
-        setOrders(response.data.items)
+        setOrders(response.data.items || [])
         setPagination({
-          total: response.data.total,
-          page: response.data.page,
-          totalPages: response.data.totalPages,
-          hasNext: response.data.hasNext,
-          hasPrev: response.data.hasPrev
+          total: response.data.total || 0,
+          page: response.data.page || 1,
+          totalPages: response.data.totalPages || 0,
+          hasNext: response.data.hasNext || false,
+          hasPrev: response.data.hasPrev || false
         })
       } else {
         setError('Failed to fetch orders')
@@ -453,7 +499,7 @@ export function useQuotations(filters: any = {}) {
     try {
       const response = await orderApi.getQuotations(filters)
       if (response.success && response.data) {
-        setQuotations(response.data.items)
+        setQuotations(response.data.items || [])
       } else {
         setError('Failed to fetch quotations')
         setQuotations([])

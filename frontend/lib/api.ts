@@ -18,12 +18,20 @@ export interface ApiResponse<T = any> {
 export interface PaginatedResponse<T> {
   success: boolean
   data: {
-    items: T[]
-    total: number
-    page: number
-    totalPages: number
-    hasNext: boolean
-    hasPrev: boolean
+    items?: T[]
+    products?: T[]  // Backend returns products array
+    total?: number
+    page?: number
+    totalPages?: number
+    hasNext?: boolean
+    hasPrev?: boolean
+    pagination?: {   // Backend returns nested pagination object
+      total: number
+      page: number
+      total_pages: number
+      has_next: boolean
+      has_prev: boolean
+    }
   }
 }
 
@@ -60,6 +68,8 @@ export class ApiService {
     const url = `${this.baseUrl}${endpoint}`
     const token = config.token || this.getAuthToken()
     
+    console.log('API Request:', { url, method: config.method, hasToken: !!token })
+    
     const headers = {
       ...this.defaultHeaders,
       ...config.headers,
@@ -74,7 +84,38 @@ export class ApiService {
 
     try {
       const response = await fetch(url, requestConfig)
-      const data = await response.json()
+      console.log('API Response status:', response.status, response.statusText)
+      
+      let data
+      try {
+        data = await response.json()
+        console.log('API Response data:', data)
+      } catch (jsonError) {
+        // Handle non-JSON responses (like HTML error pages)
+        const textResponse = await response.text()
+        console.error('Failed to parse JSON response:', textResponse.substring(0, 200))
+        
+        if (!response.ok) {
+          return {
+            success: false,
+            error: {
+              code: response.status.toString(),
+              message: `Server returned ${response.status}: ${response.statusText}`,
+              details: textResponse.substring(0, 500)
+            }
+          }
+        }
+        
+        // If it's a successful response but not JSON, treat it as an error
+        return {
+          success: false,
+          error: {
+            code: 'INVALID_RESPONSE_FORMAT',
+            message: 'Server returned non-JSON response',
+            details: textResponse.substring(0, 500)
+          }
+        }
+      }
 
       if (!response.ok) {
         // Handle 401 unauthorized - redirect to home page
@@ -110,6 +151,7 @@ export class ApiService {
         }
       }
     } catch (error) {
+      console.error('API Request failed:', error)
       return {
         success: false,
         error: {
