@@ -6,12 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Slider } from "@/components/ui/slider"
 import { Calendar } from "@/components/ui/calendar"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { 
   Search, 
   Calendar as CalendarIcon, 
@@ -32,16 +34,25 @@ import {
   Home,
   Music,
   Gamepad2,
-  Laptop
+  Laptop,
+  Grid3x3,
+  List,
+  SlidersHorizontal,
+  ChevronDown,
+  Eye,
+  Plus
 } from "lucide-react"
 import { format, addDays, differenceInDays } from "date-fns"
 
-// Rental products data
+// Enhanced rental products data with more attributes
 const rentalProducts = [
   {
     id: "RP001",
     name: "Professional Camera Kit",
     category: "Photography",
+    brand: "Canon",
+    color: "Black",
+    condition: "Excellent",
     description: "Complete professional photography setup with DSLR camera, lenses, and accessories",
     image: "/placeholder.jpg",
     pricing: {
@@ -55,12 +66,17 @@ const rentalProducts = [
     rating: 4.8,
     reviews: 156,
     features: ["Full Frame DSLR", "3 Professional Lenses", "Tripod & Accessories", "Carrying Case"],
-    location: "Downtown Store"
+    location: "Downtown Store",
+    weight: "2.5kg",
+    dimensions: "30x20x15cm"
   },
   {
     id: "RP002",
     name: "Wedding Decoration Package",
     category: "Events",
+    brand: "EventPro",
+    color: "Multi-color",
+    condition: "Good",
     description: "Complete wedding decoration setup including flowers, lighting, and centerpieces",
     image: "/placeholder.jpg",
     pricing: {
@@ -72,12 +88,17 @@ const rentalProducts = [
     rating: 4.9,
     reviews: 89,
     features: ["Floral Arrangements", "LED Lighting", "Table Centerpieces", "Backdrop Setup"],
-    location: "Event Center"
+    location: "Event Center",
+    weight: "15kg",
+    dimensions: "Various sizes"
   },
   {
     id: "RP003",
     name: "Power Tools Set",
     category: "Tools",
+    brand: "DeWalt",
+    color: "Yellow",
+    condition: "Excellent",
     description: "Professional grade power tools for construction and home improvement",
     image: "/placeholder.jpg",
     pricing: {
@@ -91,579 +112,526 @@ const rentalProducts = [
     rating: 4.7,
     reviews: 203,
     features: ["Cordless Drill", "Circular Saw", "Impact Driver", "Tool Case"],
-    location: "Hardware Store"
+    location: "Hardware Store",
+    weight: "8kg",
+    dimensions: "50x30x20cm"
   },
   {
     id: "RP004",
     name: "Party Sound System",
     category: "Audio",
+    brand: "JBL",
+    color: "Black",
+    condition: "Good",
     description: "Professional sound system perfect for parties and events",
     image: "/placeholder.jpg",
     pricing: {
       hourly: 12,
-      daily: 60,
-      weekly: 350
-    },
-    deposit: 100,
-    availability: "available",
-    rating: 4.6,
-    reviews: 78,
-    features: ["Wireless Microphones", "Bluetooth Connectivity", "LED Speakers", "Mixing Console"],
-    location: "Audio Shop"
-  },
-  {
-    id: "RP005",
-    name: "Gaming Setup Complete",
-    category: "Gaming",
-    description: "Ultimate gaming experience with high-end PC and accessories",
-    image: "/placeholder.jpg",
-    pricing: {
-      hourly: 10,
-      daily: 55,
-      weekly: 320,
-      monthly: 1200
+      daily: 75,
+      weekly: 400,
+      monthly: 1400
     },
     deposit: 300,
     availability: "available",
+    rating: 4.6,
+    reviews: 124,
+    features: ["Wireless Microphones", "Bluetooth Connectivity", "LED Light Show", "Remote Control"],
+    location: "Audio Center",
+    weight: "12kg",
+    dimensions: "60x40x35cm"
+  },
+  {
+    id: "RP005",
+    name: "Gaming Console Bundle",
+    category: "Entertainment",
+    brand: "Sony",
+    color: "White",
+    condition: "Excellent",
+    description: "Latest gaming console with controllers and popular games",
+    image: "/placeholder.jpg",
+    pricing: {
+      daily: 25,
+      weekly: 150,
+      monthly: 500
+    },
+    deposit: 100,
+    availability: "available",
     rating: 4.9,
-    reviews: 92,
-    features: ["RTX 4080 GPU", "32GB RAM", "4K Monitor", "Gaming Peripherals"],
-    location: "Tech Store"
+    reviews: 78,
+    features: ["2 Controllers", "5 Popular Games", "4K Gaming", "Online Access"],
+    location: "Gaming Store",
+    weight: "3kg",
+    dimensions: "40x25x10cm"
   },
   {
     id: "RP006",
-    name: "Laptop Workstation",
+    name: "Laptop - MacBook Pro",
     category: "Technology",
-    description: "High-performance laptop perfect for business and creative work",
+    brand: "Apple",
+    color: "Silver",
+    condition: "Excellent",
+    description: "High-performance laptop for professional work and creative projects",
     image: "/placeholder.jpg",
     pricing: {
-      hourly: 6,
-      daily: 35,
-      weekly: 200,
-      monthly: 750
+      daily: 40,
+      weekly: 250,
+      monthly: 900
     },
     deposit: 200,
-    availability: "available",
-    rating: 4.5,
-    reviews: 134,
-    features: ["Intel i7 Processor", "16GB RAM", "512GB SSD", "External Monitor"],
-    location: "Tech Store"
+    availability: "limited",
+    rating: 4.8,
+    reviews: 95,
+    features: ["16GB RAM", "512GB SSD", "M2 Chip", "Retina Display"],
+    location: "Tech Store",
+    weight: "1.6kg",
+    dimensions: "35x25x2cm"
   }
-]
-
-const categories = [
-  { id: "all", name: "All Categories", icon: Package },
-  { id: "photography", name: "Photography", icon: Camera },
-  { id: "events", name: "Events", icon: Heart },
-  { id: "tools", name: "Tools", icon: Wrench },
-  { id: "audio", name: "Audio", icon: Music },
-  { id: "gaming", name: "Gaming", icon: Gamepad2 },
-  { id: "technology", name: "Technology", icon: Laptop }
 ]
 
 export function CustomerPortalShop() {
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedCategory, setSelectedCategory] = useState("all")
-  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [selectedBrands, setSelectedBrands] = useState<string[]>([])
+  const [selectedColors, setSelectedColors] = useState<string[]>([])
+  const [selectedConditions, setSelectedConditions] = useState<string[]>([])
+  const [priceRange, setPriceRange] = useState([0, 500])
+  const [sortBy, setSortBy] = useState("name")
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+  const [showFilters, setShowFilters] = useState(true)
+  
+  // Cart and booking states
   const [cart, setCart] = useState<any[]>([])
-  const [showBookingDialog, setShowBookingDialog] = useState(false)
-  const [startDate, setStartDate] = useState<Date>()
-  const [endDate, setEndDate] = useState<Date>()
-  const [rentalDuration, setRentalDuration] = useState("daily")
-  const [showCart, setShowCart] = useState(false)
-  const [customerInfo, setCustomerInfo] = useState({
-    name: "",
-    email: "",
-    phone: "",
-    address: ""
+  const [selectedProduct, setSelectedProduct] = useState<any>(null)
+  const [bookingDates, setBookingDates] = useState<{start: Date | undefined, end: Date | undefined}>({
+    start: undefined,
+    end: undefined
   })
 
-  // Filter products based on search and category
-  const filteredProducts = rentalProducts.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === "all" || 
-                           product.category.toLowerCase() === selectedCategory
-    return matchesSearch && matchesCategory
-  })
+  // Extract unique values for filters
+  const categories = Array.from(new Set(rentalProducts.map(p => p.category)))
+  const brands = Array.from(new Set(rentalProducts.map(p => p.brand)))
+  const colors = Array.from(new Set(rentalProducts.map(p => p.color)))
+  const conditions = Array.from(new Set(rentalProducts.map(p => p.condition)))
 
-  // Calculate rental price based on duration
-  const calculateRentalPrice = (product: any, days: number, durationType: string) => {
-    const pricing = product.pricing
-    
-    switch (durationType) {
-      case "hourly":
-        return pricing.hourly * days * 24 // Assuming full day usage
-      case "daily":
-        return pricing.daily * days
-      case "weekly":
-        const weeks = Math.ceil(days / 7)
-        return pricing.weekly * weeks
-      case "monthly":
-        const months = Math.ceil(days / 30)
-        return pricing.monthly * months
+  // Filter and sort products
+  const filteredProducts = rentalProducts
+    .filter((product) => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           product.description.toLowerCase().includes(searchTerm.toLowerCase())
+      const matchesCategory = selectedCategory === "all" || product.category === selectedCategory
+      const matchesBrand = selectedBrands.length === 0 || selectedBrands.includes(product.brand)
+      const matchesColor = selectedColors.length === 0 || selectedColors.includes(product.color)
+      const matchesCondition = selectedConditions.length === 0 || selectedConditions.includes(product.condition)
+      const matchesPrice = product.pricing.daily >= priceRange[0] && product.pricing.daily <= priceRange[1]
+      
+      return matchesSearch && matchesCategory && matchesBrand && matchesColor && matchesCondition && matchesPrice
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name)
+        case "price-low":
+          return a.pricing.daily - b.pricing.daily
+        case "price-high":
+          return b.pricing.daily - a.pricing.daily
+        case "rating":
+          return b.rating - a.rating
+        case "reviews":
+          return b.reviews - a.reviews
+        default:
+          return 0
+      }
+    })
+
+  const handleBrandChange = (brand: string, checked: boolean) => {
+    if (checked) {
+      setSelectedBrands([...selectedBrands, brand])
+    } else {
+      setSelectedBrands(selectedBrands.filter(b => b !== brand))
+    }
+  }
+
+  const handleColorChange = (color: string, checked: boolean) => {
+    if (checked) {
+      setSelectedColors([...selectedColors, color])
+    } else {
+      setSelectedColors(selectedColors.filter(c => c !== color))
+    }
+  }
+
+  const handleConditionChange = (condition: string, checked: boolean) => {
+    if (checked) {
+      setSelectedConditions([...selectedConditions, condition])
+    } else {
+      setSelectedConditions(selectedConditions.filter(c => c !== condition))
+    }
+  }
+
+  const addToCart = (product: any) => {
+    setCart([...cart, { ...product, quantity: 1 }])
+  }
+
+  const getAvailabilityColor = (availability: string) => {
+    switch (availability) {
+      case "available":
+        return "default"
+      case "limited":
+        return "secondary"
+      case "unavailable":
+        return "destructive"
       default:
-        return pricing.daily * days
+        return "outline"
     }
   }
-
-  // Add product to cart
-  const addToCart = (product: any, startDate: Date, endDate: Date, duration: string) => {
-    const days = differenceInDays(endDate, startDate) + 1
-    const price = calculateRentalPrice(product, days, duration)
-    
-    const cartItem = {
-      id: product.id,
-      name: product.name,
-      startDate: startDate,
-      endDate: endDate,
-      duration: duration,
-      days: days,
-      price: price,
-      deposit: product.deposit,
-      total: price + product.deposit
-    }
-    
-    setCart([...cart, cartItem])
-    setShowBookingDialog(false)
-    setSelectedProduct(null)
-  }
-
-  // Remove from cart
-  const removeFromCart = (index: number) => {
-    const newCart = cart.filter((_, i) => i !== index)
-    setCart(newCart)
-  }
-
-  // Calculate cart total
-  const cartTotal = cart.reduce((total, item) => total + item.total, 0)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 overflow-x-hidden">
       {/* Header */}
-      <div className="bg-white border-b">
+      <div className="bg-white border-b shadow-sm">
         <div className="container mx-auto px-4 py-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">RentalPro Shop</h1>
-              <p className="text-gray-600 mt-1">Rent quality products for any occasion</p>
+              <h1 className="text-2xl font-bold text-gray-900">Rental Shop</h1>
+              <p className="text-gray-600">Browse and rent high-quality products</p>
             </div>
-            <Button 
-              onClick={() => setShowCart(true)} 
-              className="relative"
-              size="lg"
-            >
-              <ShoppingCart className="h-5 w-5 mr-2" />
-              Cart ({cart.length})
-              {cart.length > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  ${cartTotal.toFixed(2)}
-                </Badge>
-              )}
-            </Button>
+            <div className="flex items-center space-x-4">
+              <Badge variant="outline" className="px-3 py-1">
+                {filteredProducts.length} Products
+              </Badge>
+              <Button variant="outline" size="sm">
+                <ShoppingCart className="h-4 w-4 mr-2" />
+                Cart ({cart.length})
+              </Button>
+            </div>
           </div>
         </div>
       </div>
 
-      <div className="container mx-auto px-4 py-8">
-        {/* Search and Filters */}
-        <div className="mb-8">
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-                <Input
-                  placeholder="Search products..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10"
-                />
-              </div>
-            </div>
-            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Select category" />
-              </SelectTrigger>
-              <SelectContent>
-                {categories.map((category) => {
-                  const Icon = category.icon
-                  return (
-                    <SelectItem key={category.id} value={category.id}>
-                      <div className="flex items-center">
-                        <Icon className="h-4 w-4 mr-2" />
-                        {category.name}
-                      </div>
-                    </SelectItem>
-                  )
-                })}
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Category Pills */}
-          <div className="flex flex-wrap gap-2">
-            {categories.map((category) => {
-              const Icon = category.icon
-              return (
-                <Button
-                  key={category.id}
-                  variant={selectedCategory === category.id ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setSelectedCategory(category.id)}
-                  className="flex items-center"
-                >
-                  <Icon className="h-4 w-4 mr-1" />
-                  {category.name}
-                </Button>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Products Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredProducts.map((product) => (
-            <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-              <div className="relative">
-                <img 
-                  src={product.image} 
-                  alt={product.name}
-                  className="w-full h-48 object-cover"
-                />
-                <Badge 
-                  variant={product.availability === "available" ? "default" : "secondary"}
-                  className="absolute top-2 right-2"
-                >
-                  {product.availability === "available" ? "Available" : "Limited"}
-                </Badge>
-              </div>
-              
-              <CardHeader>
-                <div className="flex justify-between items-start">
+      <div className="container mx-auto px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Sidebar Filters */}
+          {showFilters && (
+            <div className="w-full lg:w-80 lg:flex-shrink-0">
+              <Card>
+                <CardHeader>
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">Product Attributes</CardTitle>
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => setShowFilters(false)}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="space-y-6">
+                  {/* Category Filter */}
                   <div>
-                    <CardTitle className="text-lg">{product.name}</CardTitle>
-                    <CardDescription>{product.category}</CardDescription>
+                    <Label className="text-sm font-medium">Category</Label>
+                    <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                      <SelectTrigger className="mt-2">
+                        <SelectValue placeholder="Select category" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Categories</SelectItem>
+                        {categories.map((category) => (
+                          <SelectItem key={category} value={category}>
+                            {category}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex items-center">
-                    <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                    <span className="text-sm font-medium ml-1">{product.rating}</span>
-                    <span className="text-sm text-gray-500 ml-1">({product.reviews})</span>
-                  </div>
-                </div>
-              </CardHeader>
 
-              <CardContent>
-                <p className="text-sm text-gray-600 mb-4">{product.description}</p>
-                
-                <div className="mb-4">
-                  <div className="flex items-center text-sm text-gray-500 mb-2">
-                    <MapPin className="h-4 w-4 mr-1" />
-                    {product.location}
-                  </div>
-                  
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    {product.pricing.hourly && (
-                      <div>Hourly: <span className="font-medium">${product.pricing.hourly}</span></div>
-                    )}
-                    <div>Daily: <span className="font-medium">${product.pricing.daily}</span></div>
-                    {product.pricing.weekly && (
-                      <div>Weekly: <span className="font-medium">${product.pricing.weekly}</span></div>
-                    )}
-                    {product.pricing.monthly && (
-                      <div>Monthly: <span className="font-medium">${product.pricing.monthly}</span></div>
-                    )}
-                  </div>
-                  
-                  <div className="mt-2 text-sm text-gray-500">
-                    Deposit: <span className="font-medium">${product.deposit}</span>
-                  </div>
-                </div>
-
-                <div className="flex gap-2">
-                  <Dialog>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" className="flex-1">
-                        View Details
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl">
-                      <DialogHeader>
-                        <DialogTitle>{product.name}</DialogTitle>
-                        <DialogDescription>{product.description}</DialogDescription>
-                      </DialogHeader>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div>
-                          <img 
-                            src={product.image} 
-                            alt={product.name}
-                            className="w-full h-64 object-cover rounded-lg"
+                  {/* Brand Filter */}
+                  <div>
+                    <Label className="text-sm font-medium">Brand</Label>
+                    <div className="mt-2 space-y-2">
+                      {brands.map((brand) => (
+                        <div key={brand} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`brand-${brand}`}
+                            checked={selectedBrands.includes(brand)}
+                            onCheckedChange={(checked) => handleBrandChange(brand, checked as boolean)}
                           />
+                          <Label htmlFor={`brand-${brand}`} className="text-sm">
+                            {brand}
+                          </Label>
                         </div>
-                        
-                        <div>
-                          <h4 className="font-semibold mb-2">Features:</h4>
-                          <ul className="space-y-1 mb-4">
-                            {product.features.map((feature, index) => (
-                              <li key={index} className="flex items-center text-sm">
-                                <CheckCircle className="h-4 w-4 text-green-500 mr-2" />
-                                {feature}
-                              </li>
-                            ))}
-                          </ul>
-                          
-                          <div className="space-y-2">
-                            <div className="flex items-center">
-                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400 mr-1" />
-                              <span className="font-medium">{product.rating}</span>
-                              <span className="text-gray-500 ml-1">({product.reviews} reviews)</span>
-                            </div>
-                            <div className="flex items-center">
-                              <MapPin className="h-4 w-4 text-gray-400 mr-1" />
-                              <span className="text-sm">{product.location}</span>
-                            </div>
-                          </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Color Filter */}
+                  <div>
+                    <Label className="text-sm font-medium">Color</Label>
+                    <div className="mt-2 space-y-2">
+                      {colors.map((color) => (
+                        <div key={color} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`color-${color}`}
+                            checked={selectedColors.includes(color)}
+                            onCheckedChange={(checked) => handleColorChange(color, checked as boolean)}
+                          />
+                          <Label htmlFor={`color-${color}`} className="text-sm">
+                            {color}
+                          </Label>
                         </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Condition Filter */}
+                  <div>
+                    <Label className="text-sm font-medium">Condition</Label>
+                    <div className="mt-2 space-y-2">
+                      {conditions.map((condition) => (
+                        <div key={condition} className="flex items-center space-x-2">
+                          <Checkbox
+                            id={`condition-${condition}`}
+                            checked={selectedConditions.includes(condition)}
+                            onCheckedChange={(checked) => handleConditionChange(condition, checked as boolean)}
+                          />
+                          <Label htmlFor={`condition-${condition}`} className="text-sm">
+                            {condition}
+                          </Label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Price Range */}
+                  <div>
+                    <Label className="text-sm font-medium">Price Range (per day)</Label>
+                    <div className="mt-4 px-3">
+                      <Slider
+                        value={priceRange}
+                        onValueChange={setPriceRange}
+                        max={500}
+                        min={0}
+                        step={10}
+                        className="w-full"
+                      />
+                      <div className="flex justify-between text-sm text-gray-500 mt-2">
+                        <span>${priceRange[0]}</span>
+                        <span>${priceRange[1]}</span>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                  
+                    </div>
+                  </div>
+
+                  {/* Clear Filters */}
                   <Button 
+                    variant="outline" 
+                    className="w-full"
                     onClick={() => {
-                      setSelectedProduct(product)
-                      setShowBookingDialog(true)
+                      setSelectedBrands([])
+                      setSelectedColors([])
+                      setSelectedConditions([])
+                      setPriceRange([0, 500])
+                      setSelectedCategory("all")
                     }}
-                    className="flex-1"
                   >
-                    Book Now
+                    Clear All Filters
+                  </Button>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
+            {/* Search and Controls */}
+            <div className="mb-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+                <div className="flex-1 w-full relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+                  <Input
+                    placeholder="Search products..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10"
+                  />
+                </div>
+                {!showFilters && (
+                  <Button 
+                    variant="outline"
+                    onClick={() => setShowFilters(true)}
+                    className="w-full sm:w-auto"
+                  >
+                    <SlidersHorizontal className="h-4 w-4 mr-2" />
+                    Filters
+                  </Button>
+                )}
+              </div>
+
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex items-center gap-2">
+                    <Label className="text-sm whitespace-nowrap">Sort by:</Label>
+                    <Select value={sortBy} onValueChange={setSortBy}>
+                      <SelectTrigger className="w-40">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="name">Name A-Z</SelectItem>
+                        <SelectItem value="price-low">Price: Low to High</SelectItem>
+                        <SelectItem value="price-high">Price: High to Low</SelectItem>
+                        <SelectItem value="rating">Highest Rated</SelectItem>
+                        <SelectItem value="reviews">Most Reviewed</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant={viewMode === "grid" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setViewMode("grid")}
+                  >
+                    <Grid3x3 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant={viewMode === "list" ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setViewMode("list")}
+                  >
+                    <List className="h-4 w-4" />
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {filteredProducts.length === 0 && (
-          <div className="text-center py-12">
-            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">No products found</h3>
-            <p className="text-gray-500">Try adjusting your search or filter criteria.</p>
-          </div>
-        )}
-      </div>
-
-      {/* Booking Dialog */}
-      <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Book {selectedProduct?.name}</DialogTitle>
-            <DialogDescription>Select your rental dates and duration</DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Start Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {startDate ? format(startDate, "MMM dd, yyyy") : "Pick date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={startDate}
-                      onSelect={setStartDate}
-                      disabled={(date) => date < new Date()}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-              
-              <div>
-                <Label>End Date</Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button variant="outline" className="w-full justify-start text-left font-normal">
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {endDate ? format(endDate, "MMM dd, yyyy") : "Pick date"}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      selected={endDate}
-                      onSelect={setEndDate}
-                      disabled={(date) => date < (startDate || new Date())}
-                      initialFocus
-                    />
-                  </PopoverContent>
-                </Popover>
               </div>
             </div>
 
-            <div>
-              <Label>Rental Duration Type</Label>
-              <Select value={rentalDuration} onValueChange={setRentalDuration}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {selectedProduct?.pricing.hourly && (
-                    <SelectItem value="hourly">Hourly - ${selectedProduct.pricing.hourly}/hour</SelectItem>
-                  )}
-                  <SelectItem value="daily">Daily - ${selectedProduct?.pricing.daily}/day</SelectItem>
-                  {selectedProduct?.pricing.weekly && (
-                    <SelectItem value="weekly">Weekly - ${selectedProduct.pricing.weekly}/week</SelectItem>
-                  )}
-                  {selectedProduct?.pricing.monthly && (
-                    <SelectItem value="monthly">Monthly - ${selectedProduct.pricing.monthly}/month</SelectItem>
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
+            {/* Products Grid View */}
+            {viewMode === "grid" && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-4 lg:gap-6">
+                {filteredProducts.map((product) => (
+                  <Card key={product.id} className="overflow-hidden hover:shadow-lg transition-shadow">
+                    <div className="aspect-square bg-gray-100 relative">
+                      <Package className="h-16 w-16 text-gray-400 absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2" />
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="absolute top-2 right-2"
+                      >
+                        <Heart className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <CardContent className="p-4">
+                      <div className="mb-2">
+                        <h3 className="font-semibold text-sm truncate">{product.name}</h3>
+                        <p className="text-xs text-gray-500 truncate">{product.brand} • {product.color}</p>
+                      </div>
+                      
+                      <div className="flex items-center gap-1 mb-2">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs">{product.rating}</span>
+                        <span className="text-xs text-gray-500">({product.reviews})</span>
+                      </div>
 
-            {startDate && endDate && (
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <div className="flex justify-between items-center mb-2">
-                  <span>Duration:</span>
-                  <span className="font-medium">{differenceInDays(endDate, startDate) + 1} days</span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span>Rental Price:</span>
-                  <span className="font-medium">
-                    ${calculateRentalPrice(selectedProduct, differenceInDays(endDate, startDate) + 1, rentalDuration)}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center mb-2">
-                  <span>Security Deposit:</span>
-                  <span className="font-medium">${selectedProduct?.deposit}</span>
-                </div>
-                <Separator className="my-2" />
-                <div className="flex justify-between items-center font-semibold">
-                  <span>Total:</span>
-                  <span>
-                    ${calculateRentalPrice(selectedProduct, differenceInDays(endDate, startDate) + 1, rentalDuration) + (selectedProduct?.deposit || 0)}
-                  </span>
-                </div>
-              </div>
-            )}
+                      <div className="text-lg font-bold mb-2">
+                        ${product.pricing.daily}/day
+                      </div>
 
-            <Button 
-              onClick={() => startDate && endDate && addToCart(selectedProduct, startDate, endDate, rentalDuration)}
-              disabled={!startDate || !endDate}
-              className="w-full"
-            >
-              Add to Cart
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
+                      <Badge variant={getAvailabilityColor(product.availability)} className="mb-3 text-xs">
+                        {product.availability}
+                      </Badge>
 
-      {/* Shopping Cart Dialog */}
-      <Dialog open={showCart} onOpenChange={setShowCart}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>Shopping Cart</DialogTitle>
-            <DialogDescription>Review your rental items and checkout</DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {cart.length === 0 ? (
-              <div className="text-center py-8">
-                <ShoppingCart className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Your cart is empty</h3>
-                <p className="text-gray-500">Add some products to get started.</p>
-              </div>
-            ) : (
-              <>
-                <div className="space-y-3 max-h-96 overflow-y-auto">
-                  {cart.map((item, index) => (
-                    <div key={index} className="border rounded-lg p-4">
-                      <div className="flex justify-between items-start mb-2">
-                        <h4 className="font-semibold">{item.name}</h4>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => removeFromCart(index)}
-                        >
-                          Remove
+                      <div className="space-y-2">
+                        <Button size="sm" className="w-full" onClick={() => addToCart(product)}>
+                          <Plus className="h-3 w-3 mr-1" />
+                          Add to Cart
                         </Button>
                       </div>
-                      <div className="text-sm text-gray-600 space-y-1">
-                        <div>Duration: {format(item.startDate, "MMM dd")} - {format(item.endDate, "MMM dd")} ({item.days} days)</div>
-                        <div>Type: {item.duration}</div>
-                        <div>Rental: ${item.price} + Deposit: ${item.deposit}</div>
-                        <div className="font-semibold">Total: ${item.total}</div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                <Separator />
-
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="flex justify-between items-center text-lg font-semibold">
-                    <span>Cart Total:</span>
-                    <span>${cartTotal.toFixed(2)}</span>
-                  </div>
-                </div>
-
-                <div className="space-y-3">
-                  <h4 className="font-semibold">Customer Information</h4>
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <Label>Full Name</Label>
-                      <Input 
-                        value={customerInfo.name}
-                        onChange={(e) => setCustomerInfo({...customerInfo, name: e.target.value})}
-                        placeholder="Enter your name"
-                      />
-                    </div>
-                    <div>
-                      <Label>Email</Label>
-                      <Input 
-                        type="email"
-                        value={customerInfo.email}
-                        onChange={(e) => setCustomerInfo({...customerInfo, email: e.target.value})}
-                        placeholder="Enter your email"
-                      />
-                    </div>
-                    <div>
-                      <Label>Phone</Label>
-                      <Input 
-                        value={customerInfo.phone}
-                        onChange={(e) => setCustomerInfo({...customerInfo, phone: e.target.value})}
-                        placeholder="Enter your phone"
-                      />
-                    </div>
-                    <div>
-                      <Label>Address</Label>
-                      <Input 
-                        value={customerInfo.address}
-                        onChange={(e) => setCustomerInfo({...customerInfo, address: e.target.value})}
-                        placeholder="Enter your address"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <Button 
-                  size="lg" 
-                  className="w-full"
-                  disabled={!customerInfo.name || !customerInfo.email || !customerInfo.phone}
-                >
-                  <CreditCard className="h-5 w-5 mr-2" />
-                  Proceed to Payment
-                </Button>
-              </>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
+
+            {/* Products List View */}
+            {viewMode === "list" && (
+              <div className="overflow-x-auto">
+                <Card>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="min-w-[200px]">Product</TableHead>
+                        <TableHead className="min-w-[100px]">Category</TableHead>
+                        <TableHead className="min-w-[100px]">Brand</TableHead>
+                        <TableHead className="min-w-[100px]">Condition</TableHead>
+                        <TableHead className="min-w-[100px]">Price/Day</TableHead>
+                        <TableHead className="min-w-[100px]">Rating</TableHead>
+                        <TableHead className="min-w-[120px]">Availability</TableHead>
+                        <TableHead className="min-w-[120px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredProducts.map((product) => (
+                        <TableRow key={product.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <div className="w-12 h-12 bg-gray-100 rounded flex items-center justify-center flex-shrink-0">
+                                <Package className="h-6 w-6 text-gray-400" />
+                              </div>
+                              <div className="min-w-0">
+                                <div className="font-semibold truncate">{product.name}</div>
+                                <div className="text-sm text-gray-500 truncate">{product.description.substring(0, 50)}...</div>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{product.category}</TableCell>
+                          <TableCell>{product.brand}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline">{product.condition}</Badge>
+                          </TableCell>
+                          <TableCell className="font-semibold">${product.pricing.daily}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                              <span>{product.rating}</span>
+                              <span className="text-gray-500">({product.reviews})</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={getAvailabilityColor(product.availability)}>
+                              {product.availability}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-2">
+                              <Button size="sm" variant="outline">
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                              <Button size="sm" onClick={() => addToCart(product)}>
+                                <Plus className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </Card>
+              </div>
+            )}
+
+            {/* Pagination */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 mt-8">
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm">Previous</Button>
+                <Button variant="default" size="sm">1</Button>
+                <Button variant="outline" size="sm">2</Button>
+                <Button variant="outline" size="sm">3</Button>
+                <Button variant="outline" size="sm">...</Button>
+                <Button variant="outline" size="sm">10</Button>
+                <Button variant="outline" size="sm">Next</Button>
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+      </div>
     </div>
   )
 }
