@@ -28,7 +28,7 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-&zt-tj-)*zxk!7a*656xk
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,rentalmanagementsystem-production.up.railway.app').split(',')
 
 
 # Application definition
@@ -225,6 +225,12 @@ SIMPLE_JWT = {
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:3000",  # Next.js default development server
     "http://127.0.0.1:3000",
+    "https://rentalmanagementsystem-production.up.railway.app",  # Railway production URL
+]
+
+# CSRF trusted origins for Railway deployment
+CSRF_TRUSTED_ORIGINS = [
+    "https://rentalmanagementsystem-production.up.railway.app",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
