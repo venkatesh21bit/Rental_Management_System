@@ -14,6 +14,8 @@ from datetime import datetime, timedelta
 from decimal import Decimal
 import json
 import logging
+from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.openapi import OpenApiParameter, OpenApiTypes
 
 from .models import (
     PaymentProvider, Payment, PaymentRefund, WebhookEvent,
@@ -518,7 +520,21 @@ class BankAccountViewSet(viewsets.ModelViewSet):
         return super().get_queryset()
 
 
+@extend_schema_view(
+    list=extend_schema(
+        summary="List webhook events",
+        description="Retrieve a list of webhook events (staff only)"
+    ),
+    retrieve=extend_schema(
+        summary="Get webhook event details",
+        description="Retrieve details of a specific webhook event (staff only)"
+    )
+)
 class WebhookEventViewSet(viewsets.ReadOnlyModelViewSet):
+    """
+    ReadOnly viewset for webhook events.
+    Only staff users can view webhook events for debugging and monitoring.
+    """
     queryset = WebhookEvent.objects.all()
     serializer_class = WebhookEventSerializer
     permission_classes = [IsAuthenticated]
@@ -527,7 +543,6 @@ class WebhookEventViewSet(viewsets.ReadOnlyModelViewSet):
         if not self.request.user.is_staff:
             return WebhookEvent.objects.none()
         return super().get_queryset().order_by('-created_at')
-# Full implementation will be added when serializers are created
 
 @api_view(['GET'])
 def payments_overview(request):
