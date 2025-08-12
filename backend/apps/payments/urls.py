@@ -5,6 +5,9 @@ from .views import (
     PaymentLinkViewSet, BankAccountViewSet, WebhookEventViewSet
 )
 from .webhook_views import StripeWebhookView, razorpay_webhook, webhook_health_check
+from .order_payment_views import (
+    create_order_payment, complete_payment, payment_providers, order_payment_status
+)
 
 app_name = 'payments'
 
@@ -15,6 +18,14 @@ router.register(r'refunds', PaymentRefundViewSet, basename='payment-refund')
 router.register(r'payment-links', PaymentLinkViewSet, basename='payment-link')
 router.register(r'bank-accounts', BankAccountViewSet, basename='bank-account')
 router.register(r'webhooks', WebhookEventViewSet, basename='webhook-event')
+
+# Order payment endpoints
+order_payment_patterns = [
+    path('orders/<uuid:order_id>/create-payment/', create_order_payment, name='create-order-payment'),
+    path('payments/<uuid:payment_id>/complete/', complete_payment, name='complete-payment'),
+    path('providers/available/', payment_providers, name='available-providers'),
+    path('orders/<uuid:order_id>/payment-status/', order_payment_status, name='order-payment-status'),
+]
 
 # Industry-grade webhook endpoints with atomic transactions
 webhook_patterns = [
@@ -30,4 +41,4 @@ additional_patterns = [
 
 urlpatterns = [
     path('', include(router.urls)),
-] + webhook_patterns + additional_patterns
+] + order_payment_patterns + webhook_patterns + additional_patterns
