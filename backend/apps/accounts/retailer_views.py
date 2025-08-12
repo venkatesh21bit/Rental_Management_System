@@ -27,7 +27,12 @@ def retailer_profile(request):
             defaults={
                 'role': 'ADMIN',  # Default role for retailers
                 'phone': '',
-                'date_of_birth': None
+                'company_name': '',
+                'address': '',
+                'city': '',
+                'state': '',
+                'postal_code': '',
+                'country': 'India'
             }
         )
         
@@ -42,8 +47,15 @@ def retailer_profile(request):
                 'profile': {
                     'role': profile.role,
                     'phone': profile.phone,
-                    'date_of_birth': profile.date_of_birth,
-                    'avatar': profile.avatar.url if profile.avatar else None,
+                    'address': profile.address,
+                    'city': profile.city,
+                    'state': profile.state,
+                    'postal_code': profile.postal_code,
+                    'country': profile.country,
+                    'company_name': profile.company_name,
+                    'tax_id': profile.tax_id,
+                    'preferred_currency': profile.preferred_currency,
+                    'is_verified': profile.is_verified,
                     'created_at': profile.created_at,
                     'updated_at': profile.updated_at
                 },
@@ -74,8 +86,22 @@ def retailer_profile(request):
             # Update profile fields
             if 'phone' in user_data:
                 profile.phone = user_data['phone']
-            if 'date_of_birth' in user_data:
-                profile.date_of_birth = user_data['date_of_birth']
+            if 'address' in user_data:
+                profile.address = user_data['address']
+            if 'city' in user_data:
+                profile.city = user_data['city']
+            if 'state' in user_data:
+                profile.state = user_data['state']
+            if 'postal_code' in user_data:
+                profile.postal_code = user_data['postal_code']
+            if 'country' in user_data:
+                profile.country = user_data['country']
+            if 'company_name' in user_data:
+                profile.company_name = user_data['company_name']
+            if 'tax_id' in user_data:
+                profile.tax_id = user_data['tax_id']
+            if 'preferred_currency' in user_data:
+                profile.preferred_currency = user_data['preferred_currency']
             if 'role' in user_data and user_data['role'] in ['ADMIN', 'STAFF']:
                 profile.role = user_data['role']
                 
