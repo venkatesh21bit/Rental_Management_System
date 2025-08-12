@@ -213,47 +213,65 @@ class RentalOrderSerializer(serializers.ModelSerializer):
         order.total_amount = total_amount + order.tax_amount - order.discount_amount
         order.save()
         
-        # Send order confirmation email asynchronously
+        # Send order confirmation email - use synchronous sending for immediate delivery
         try:
-            from apps.notifications.tasks import send_order_confirmation_email
-            send_order_confirmation_email.delay(order.id)
-        except ImportError:
-            # Fallback to direct email sending if Celery is not available
             from utils.email_service import email_service
             
-            context = {
-                'order': {
-                    'id': str(order.id),
-                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
-                    'start_date': order.rental_start.strftime('%Y-%m-%d'),
-                    'end_date': order.rental_end.strftime('%Y-%m-%d'),
-                    'total_amount': str(order.total_amount),
-                    'status': order.status,
-                    'items': [
-                        {
-                            'product_name': item.product.name,
-                            'quantity': item.quantity,
-                            'rate': str(item.unit_price),
-                            'subtotal': str(item.line_total)
-                        }
-                        for item in order.items.all()
-                    ]
-                },
-                'user': {
-                    'first_name': order.customer.first_name or 'Valued Customer',
-                    'last_name': order.customer.last_name or '',
-                    'email': order.customer.email
+            if order.customer.email:
+                context = {
+                    'order': {
+                        'id': str(order.id),
+                        'order_number': order.order_number,
+                        'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                        'start_date': order.rental_start.strftime('%Y-%m-%d'),
+                        'end_date': order.rental_end.strftime('%Y-%m-%d'),
+                        'total_amount': str(order.total_amount),
+                        'status': order.status,
+                        'items': [
+                            {
+                                'product_name': item.product.name,
+                                'quantity': item.quantity,
+                                'rate': str(item.unit_price),
+                                'subtotal': str(item.line_total)
+                            }
+                            for item in order.items.all()
+                        ]
+                    },
+                    'user': {
+                        'first_name': order.customer.first_name or 'Valued Customer',
+                        'last_name': order.customer.last_name or '',
+                        'email': order.customer.email
+                    }
                 }
-            }
-            
-            email_service.send_notification_email(
-                to_email=order.customer.email,
-                subject=f"Order Confirmation - #{order.id}",
-                template_name='order_confirmation',
-                context=context,
-                user=order.customer,
-                notification_type='ORDER_CONFIRMATION'
-            )
+                
+                # Send email synchronously for immediate delivery
+                email_success = email_service.send_notification_email(
+                    to_email=order.customer.email,
+                    subject=f"Order Confirmation - #{order.order_number}",
+                    template_name='order_confirmation',
+                    context=context,
+                    user=order.customer,
+                    notification_type='ORDER_CONFIRMATION'
+                )
+                
+                # Log the email attempt
+                from apps.notifications.models import NotificationLog
+                NotificationLog.objects.create(
+                    user=order.customer,
+                    channel='EMAIL',
+                    status='SENT' if email_success else 'FAILED',
+                    metadata={
+                        'order_id': str(order.id),
+                        'template': 'order_confirmation',
+                        'method': 'synchronous'
+                    }
+                )
+                
+        except Exception as e:
+            # Log the error but don't fail the order creation
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send order confirmation email for order {order.id}: {str(e)}")
         
         return order
     
