@@ -52,10 +52,15 @@ const OrderDetailsPage = () => {
   const [order, setOrder] = useState<OrderDetails | null>(null);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentProviders, setPaymentProviders] = useState<any[]>([]);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedProvider, setSelectedProvider] = useState('');
 
   useEffect(() => {
     if (params.id) {
       fetchOrderDetails();
+      fetchPaymentProviders();
     }
   }, [params.id]);
 
@@ -95,6 +100,73 @@ const OrderDetailsPage = () => {
       alert('Error updating order status');
     } finally {
       setUpdating(false);
+    }
+  };
+
+  const fetchPaymentProviders = async () => {
+    try {
+      const response = await fetchWithAuth(`${API_URL}/payments/order-payment/providers/`);
+      if (response.ok) {
+        const result = await response.json();
+        // Handle different response formats
+        if (Array.isArray(result)) {
+          setPaymentProviders(result);
+        } else if (result.data && Array.isArray(result.data)) {
+          setPaymentProviders(result.data);
+        } else if (result.providers && Array.isArray(result.providers)) {
+          setPaymentProviders(result.providers);
+        } else if (result.results && Array.isArray(result.results)) {
+          setPaymentProviders(result.results);
+        } else {
+          console.error('Invalid payment providers response format:', result);
+          setPaymentProviders([]);
+        }
+      } else {
+        console.error('Failed to fetch payment providers:', response.status);
+        setPaymentProviders([]);
+      }
+    } catch (error) {
+      console.error('Error fetching payment providers:', error);
+      setPaymentProviders([]);
+    }
+  };
+
+  const createOrderPayment = async () => {
+    if (!selectedProvider) {
+      alert('Please select a payment provider');
+      return;
+    }
+
+    setPaymentLoading(true);
+    try {
+      const response = await fetchWithAuth(`${API_URL}/payments/order-payment/create/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: params.id,
+          provider: selectedProvider,
+          return_url: window.location.href,
+          cancel_url: window.location.href
+        }),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        if (result.payment_url) {
+          window.open(result.payment_url, '_blank');
+        }
+        setShowPaymentModal(false);
+        // Refresh order details to show payment status
+        await fetchOrderDetails();
+      } else {
+        const error = await response.json();
+        alert(`Payment creation failed: ${error.detail || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error creating payment:', error);
+      alert('Error creating payment');
+    } finally {
+      setPaymentLoading(false);
     }
   };
 
@@ -140,6 +212,11 @@ const OrderDetailsPage = () => {
     const end = new Date(order.rental_end_date);
     return Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
   };
+
+  useEffect(() => {
+    fetchOrderDetails();
+    fetchPaymentProviders();
+  }, [params.id]);
 
   if (loading) {
     return (
@@ -197,6 +274,15 @@ const OrderDetailsPage = () => {
               {getStatusIcon(order.status || 'pending')}
               {order.status || 'Pending'}
             </span>
+            {order.payment_status !== 'paid' && (order.total_amount || 0) > 0 && (
+              <button 
+                onClick={() => setShowPaymentModal(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors"
+              >
+                <CreditCard className="h-4 w-4" />
+                Make Payment
+              </button>
+            )}
             <button className="p-2 hover:bg-neutral-800 rounded-lg transition-colors">
               <Download className="h-5 w-5" />
             </button>
@@ -426,6 +512,81 @@ const OrderDetailsPage = () => {
           </div>
         </div>
       </div>
+
+      {/* Payment Modal */}
+      {showPaymentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-neutral-900 rounded-lg border border-neutral-800 p-6 w-full max-w-md mx-4">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-xl font-semibold">Select Payment Method</h3>
+              <button
+                onClick={() => setShowPaymentModal(false)}
+                className="p-2 hover:bg-neutral-800 rounded-lg transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <p className="text-neutral-400 text-sm mb-2">Payment Amount</p>
+                <p className="text-2xl font-bold text-green-400">₹{(order.total_amount || 0).toLocaleString()}</p>
+              </div>
+              
+              <div>
+                <p className="text-neutral-400 text-sm mb-3">Choose Payment Provider</p>
+                <div className="space-y-2">
+                  {Array.isArray(paymentProviders) && paymentProviders.length > 0 ? (
+                    paymentProviders.map((provider) => (
+                      <label key={provider.id} className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="payment-provider"
+                          value={provider.id}
+                          checked={selectedProvider === provider.id}
+                          onChange={(e) => setSelectedProvider(e.target.value)}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{provider.name}</span>
+                          {provider.is_active && (
+                            <span className="text-xs bg-green-600 text-green-100 px-2 py-1 rounded">Active</span>
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="text-neutral-400 text-sm">
+                      {paymentProviders === null || paymentProviders === undefined ? 
+                        'Loading payment providers...' : 
+                        'No payment providers available'
+                      }
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowPaymentModal(false)}
+                  className="flex-1 px-4 py-2 border border-neutral-600 text-neutral-300 rounded-lg hover:bg-neutral-800 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={createOrderPayment}
+                  disabled={!selectedProvider || paymentLoading || !Array.isArray(paymentProviders) || paymentProviders.length === 0}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {paymentLoading ? 'Processing...' : 
+                   !Array.isArray(paymentProviders) || paymentProviders.length === 0 ? 'No Providers Available' :
+                   'Continue to Payment'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
