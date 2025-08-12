@@ -20,18 +20,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.shortcuts import redirect
 from apps.api import utils_views
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView, SpectacularRedocView
 
 urlpatterns = [
     # Root URL redirects to admin login
     path('', lambda request: redirect('admin:login'), name='root'),
     path('admin/', admin.site.urls),
-    
-    # Production Features
-    path('health/', include('health_check.urls')),  # Health checks
-    path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
-    path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
-    path('api/redoc/', SpectacularRedocView.as_view(url_name='schema'), name='redoc'),
     
     # Authentication and User Management
     path('api/', include('apps.accounts.urls')),
@@ -51,6 +44,9 @@ urlpatterns = [
     path('api/reports/', include('apps.reports.urls')),
     path('api/external/', include('apps.api.urls')),
     
+    # Dashboard endpoints
+    path('api/dashboard/', include('apps.reports.dashboard_urls')),
+    
     # Utility endpoints
     path('api/health/', utils_views.health_check, name='health-check'),
     path('api/metrics/', utils_views.metrics, name='metrics'),
@@ -62,9 +58,5 @@ urlpatterns = [
 
 # Serve media files during development
 if settings.DEBUG:
-    import debug_toolbar
-    urlpatterns = [
-        path('__debug__/', include(debug_toolbar.urls)),
-    ] + urlpatterns
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)

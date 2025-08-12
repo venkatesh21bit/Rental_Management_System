@@ -90,7 +90,7 @@ class Command(BaseCommand):
             from apps.invoicing.models import TaxRate
             from apps.payments.models import PaymentProvider
             from apps.notifications.models import NotificationTemplate
-            from apps.deliveries.models import DeliveryDocument
+            from apps.deliveries.models import DocumentType
         except ImportError as e:
             self.stdout.write(self.style.ERROR(f'Import error: {e}'))
             return
@@ -210,7 +210,7 @@ class Command(BaseCommand):
         self._create_tax_rates()
         self._create_payment_providers()
         self._create_notification_templates()
-        # Note: Document types are choices in DeliveryDocument model
+        self._create_document_types()
         
         self.stdout.write(self.style.SUCCESS('✅ Comprehensive sample data created!'))
         self.stdout.write('🎯 Login credentials:')
@@ -279,5 +279,22 @@ class Command(BaseCommand):
                 }
             )
     
-        # Note: DocumentType is a choices class in DeliveryDocument, not a separate model
-        # Document types are handled by DeliveryDocument.DocumentType choices
+    def _create_document_types(self):
+        """Create sample document types"""
+        from apps.deliveries.models import DocumentType
+        
+        document_types_data = [
+            ('DELIVERY_NOTE', 'Delivery Note'),
+            ('RETURN_RECEIPT', 'Return Receipt'),
+            ('PICKUP_SLIP', 'Pickup Slip'),
+        ]
+        
+        for code, name in document_types_data:
+            DocumentType.objects.get_or_create(
+                name=name,
+                defaults={
+                    'code': code,
+                    'description': f'{name} for rental operations',
+                    'is_active': True,
+                }
+            )
