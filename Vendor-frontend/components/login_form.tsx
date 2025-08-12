@@ -120,7 +120,7 @@ export function LoginForm({
 
         setTimeout(() => {
           if (role === "enduser") {
-            router.replace("/manufacturer");
+            router.replace("/end-user");
           } else if (role === "customer") {
             router.replace("/retailer");
           }
