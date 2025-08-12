@@ -28,13 +28,10 @@ interface ProductFormData {
   name: string;
   description: string;
   category: string;
-  price_per_hour: string;
-  price_per_day: string;
-  price_per_week: string;
-  price_per_month: string;
-  quantity_available: string;
-  minimum_rental_period: string;
-  maximum_rental_period: string;
+  daily_rate: string;
+  quantity_on_hand: string;
+  min_rental_duration: string;
+  max_rental_duration: string;
   deposit_amount: string;
   status: string;
 }
@@ -53,13 +50,10 @@ export default function AddProduct() {
     name: '',
     description: '',
     category: '',
-    price_per_hour: '',
-    price_per_day: '',
-    price_per_week: '',
-    price_per_month: '',
-    quantity_available: '1',
-    minimum_rental_period: '1',
-    maximum_rental_period: '30',
+    daily_rate: '',
+    quantity_on_hand: '1',
+    min_rental_duration: '1',
+    max_rental_duration: '30',
     deposit_amount: '',
     status: 'active'
   });
@@ -67,14 +61,42 @@ export default function AddProduct() {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
+        console.log('Starting to fetch categories...');
         setLoading(true);
-        const response = await fetchWithAuth(`${API_URL}/catalog/categories/`);
+        setError(null);
+        
+        const url = `${API_URL}/catalog/categories/`;
+        console.log('Fetching from URL:', url);
+        
+        const response = await fetchWithAuth(url);
+        console.log('Response received:', {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText
+        });
+        
         if (response.ok) {
           const data = await response.json();
-          setCategories(data.results || []);
+          console.log('Categories data received:', data);
+          
+          // Check if data is an array or has results property
+          const categoriesArray = Array.isArray(data) ? data : (data.results || []);
+          console.log('Categories array:', categoriesArray);
+          console.log('Categories count:', categoriesArray.length);
+          
+          setCategories(categoriesArray);
+        } else {
+          const errorText = await response.text();
+          console.error('Failed to fetch categories:', {
+            status: response.status,
+            statusText: response.statusText,
+            body: errorText
+          });
+          setError(`Failed to load categories: ${response.status} ${response.statusText}`);
         }
       } catch (err) {
         console.error('Error fetching categories:', err);
+        setError('Network error while loading categories');
       } finally {
         setLoading(false);
       }
@@ -127,8 +149,15 @@ export default function AddProduct() {
       
       // Add form fields
       Object.entries(formData).forEach(([key, value]) => {
-        submitFormData.append(key, value);
+        if (value) { // Only add non-empty values
+          submitFormData.append(key, value);
+        }
       });
+
+      // Add required backend fields
+      submitFormData.append('sku', `SKU-${Date.now()}`); // Generate unique SKU
+      submitFormData.append('rentable', 'true');
+      submitFormData.append('is_active', formData.status === 'active' ? 'true' : 'false');
 
       // Add images
       selectedImages.forEach((image, index) => {
@@ -137,6 +166,8 @@ export default function AddProduct() {
           submitFormData.append('is_primary', 'true');
         }
       });
+
+      console.log('Submitting FormData with keys:', Array.from(submitFormData.keys()));
 
       const response = await fetchWithAuth(`${API_URL}/catalog/products/`, {
         method: 'POST',
@@ -150,7 +181,8 @@ export default function AddProduct() {
         }, 2000);
       } else {
         const errorData = await response.json();
-        setError(errorData.message || 'Failed to add product');
+        console.error('Backend error:', errorData);
+        setError(JSON.stringify(errorData) || 'Failed to add product');
       }
     } catch (err) {
       console.error('Error adding product:', err);
@@ -244,11 +276,14 @@ export default function AddProduct() {
                     {loading ? 'Loading categories...' : 'Select a category'}
                   </option>
                   {categories.length > 0 ? (
-                    categories.map(category => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))
+                    categories.map(category => {
+                      console.log('Rendering category:', category);
+                      return (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      );
+                    })
                   ) : (
                     !loading && (
                       <option value="" disabled>
@@ -258,22 +293,20 @@ export default function AddProduct() {
                   )}
                 </select>
                 {/* Debug info */}
-                {process.env.NODE_ENV === 'development' && (
-                  <div className="text-xs text-gray-400 mt-1">
-                    Categories loaded: {categories.length}
-                  </div>
-                )}
+                <div className="text-xs text-gray-400 mt-1">
+                  Debug: Categories loaded: {categories.length} | Loading: {loading.toString()} | Error: {error || 'none'}
+                </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="quantity_available" className="text-white">Quantity Available *</Label>
+                  <Label htmlFor="quantity_on_hand" className="text-white">Quantity Available *</Label>
                   <Input
-                    id="quantity_available"
-                    name="quantity_available"
+                    id="quantity_on_hand"
+                    name="quantity_on_hand"
                     type="number"
                     min="1"
-                    value={formData.quantity_available}
+                    value={formData.quantity_on_hand}
                     onChange={handleInputChange}
                     required
                     className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
@@ -307,67 +340,20 @@ export default function AddProduct() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="price_per_hour" className="text-white">Price per Hour ($)</Label>
-                  <Input
-                    id="price_per_hour"
-                    name="price_per_hour"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price_per_hour}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="price_per_day" className="text-white">Price per Day ($) *</Label>
-                  <Input
-                    id="price_per_day"
-                    name="price_per_day"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price_per_day}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    required
-                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="price_per_week" className="text-white">Price per Week ($)</Label>
-                  <Input
-                    id="price_per_week"
-                    name="price_per_week"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price_per_week}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="price_per_month" className="text-white">Price per Month ($)</Label>
-                  <Input
-                    id="price_per_month"
-                    name="price_per_month"
-                    type="number"
-                    step="0.01"
-                    min="0"
-                    value={formData.price_per_month}
-                    onChange={handleInputChange}
-                    placeholder="0.00"
-                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
-                  />
-                </div>
+              <div>
+                <Label htmlFor="daily_rate" className="text-white">Daily Rate ($) *</Label>
+                <Input
+                  id="daily_rate"
+                  name="daily_rate"
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  value={formData.daily_rate}
+                  onChange={handleInputChange}
+                  placeholder="0.00"
+                  required
+                  className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
+                />
               </div>
 
               <div>
@@ -398,13 +384,13 @@ export default function AddProduct() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="minimum_rental_period" className="text-white">Minimum Rental (days) *</Label>
+                  <Label htmlFor="min_rental_duration" className="text-white">Minimum Rental (days) *</Label>
                   <Input
-                    id="minimum_rental_period"
-                    name="minimum_rental_period"
+                    id="min_rental_duration"
+                    name="min_rental_duration"
                     type="number"
                     min="1"
-                    value={formData.minimum_rental_period}
+                    value={formData.min_rental_duration}
                     onChange={handleInputChange}
                     required
                     className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
@@ -412,13 +398,13 @@ export default function AddProduct() {
                 </div>
 
                 <div>
-                  <Label htmlFor="maximum_rental_period" className="text-white">Maximum Rental (days)</Label>
+                  <Label htmlFor="max_rental_duration" className="text-white">Maximum Rental (days)</Label>
                   <Input
-                    id="maximum_rental_period"
-                    name="maximum_rental_period"
+                    id="max_rental_duration"
+                    name="max_rental_duration"
                     type="number"
                     min="1"
-                    value={formData.maximum_rental_period}
+                    value={formData.max_rental_duration}
                     onChange={handleInputChange}
                     className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />

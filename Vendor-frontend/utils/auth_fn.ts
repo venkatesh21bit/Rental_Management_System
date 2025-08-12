@@ -1,4 +1,3 @@
-
 const API_URL = "https://rentalmanagementsystem-production.up.railway.app/api";
 
 const getAuthToken = (): string | null => {
@@ -49,26 +48,42 @@ const fetchWithAuth = async (url: string, options: RequestInit = {}): Promise<Re
   let token = getAuthToken();
   if (!token) throw new Error("Authentication token not found. Please log in again.");
 
+  // Prepare headers - only set Content-Type if body is not FormData
+  const headers: Record<string, string> = {
+    ...(options.headers instanceof Headers
+      ? Object.fromEntries(options.headers.entries())
+      : options.headers as Record<string, string>),
+    Authorization: `Bearer ${token}`,
+  };
+
+  // Only set Content-Type to application/json if body is not FormData
+  if (!(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json';
+  }
+
   const response = await fetch(url, {
     ...options,
-    headers: {
-      ...options.headers,
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    },
+    headers,
   });
 
   if (response.status === 401) {
     token = await refreshAccessToken();
-    if (!token) throw new Error("Authentication token not found. Please log in again.");
+    // Prepare headers for retry - only set Content-Type if body is not FormData
+    const retryHeaders: Record<string, string> = {
+      ...(options.headers instanceof Headers
+        ? Object.fromEntries(options.headers.entries())
+        : options.headers as Record<string, string>),
+      Authorization: `Bearer ${token}`,
+    };
+
+    // Only set Content-Type to application/json if body is not FormData
+    if (!(options.body instanceof FormData)) {
+      retryHeaders['Content-Type'] = 'application/json';
+    }
 
     return fetch(url, {
       ...options,
-      headers: {
-        ...options.headers,
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      headers: retryHeaders,
     });
   }
 
