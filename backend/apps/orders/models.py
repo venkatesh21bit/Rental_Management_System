@@ -196,6 +196,20 @@ class QuoteItem(models.Model):
     def __str__(self):
         return f"{self.product.name} x{self.quantity} - {self.quote.quote_number}"
 
+    def save(self, *args, **kwargs):
+        """Auto-calculate line_total if not provided"""
+        if not self.line_total:
+            self.calculate_line_total()
+        super().save(*args, **kwargs)
+
+    def calculate_line_total(self):
+        """Calculate line total based on unit price and quantity"""
+        if self.unit_price and self.quantity:
+            subtotal = self.unit_price * self.quantity
+            self.line_total = subtotal - self.discount_amount
+        else:
+            self.line_total = 0
+
 
 class RentalItem(models.Model):
     """Items in a rental order"""
@@ -229,6 +243,20 @@ class RentalItem(models.Model):
 
     def __str__(self):
         return f"{self.product.name} x{self.quantity} - {self.order.order_number}"
+
+    def save(self, *args, **kwargs):
+        """Auto-calculate line_total if not provided"""
+        if not self.line_total:
+            self.calculate_line_total()
+        super().save(*args, **kwargs)
+
+    def calculate_line_total(self):
+        """Calculate line total based on unit price and quantity"""
+        if self.unit_price and self.quantity:
+            subtotal = self.unit_price * self.quantity
+            self.line_total = subtotal - self.discount_amount
+        else:
+            self.line_total = 0
 
 
 class Reservation(models.Model):

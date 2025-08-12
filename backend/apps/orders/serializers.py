@@ -21,12 +21,33 @@ class QuoteItemSerializer(serializers.ModelSerializer):
             'unit_price', 'discount_percent', 'discount_amount', 'line_total',
             'start_datetime', 'end_datetime', 'notes', 'created_at'
         ]
-        read_only_fields = ['id', 'line_total', 'created_at']
+        read_only_fields = ['id', 'created_at']
     
     def validate(self, data):
         if data['start_datetime'] >= data['end_datetime']:
             raise serializers.ValidationError("End datetime must be after start datetime")
         return data
+    
+    def create(self, validated_data):
+        """Create quote item with automatic line_total calculation"""
+        instance = QuoteItem(**validated_data)
+        # Calculate line_total if not provided
+        if not validated_data.get('line_total'):
+            instance.calculate_line_total()
+        instance.save()
+        return instance
+    
+    def update(self, instance, validated_data):
+        """Update quote item with automatic line_total recalculation"""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Recalculate line_total if price-related fields changed
+        if any(key in validated_data for key in ['unit_price', 'quantity', 'discount_amount']):
+            instance.calculate_line_total()
+        
+        instance.save()
+        return instance
 
 
 class RentalQuoteSerializer(serializers.ModelSerializer):
@@ -82,12 +103,33 @@ class RentalItemSerializer(serializers.ModelSerializer):
             'unit_price', 'discount_percent', 'discount_amount', 'line_total',
             'start_datetime', 'end_datetime', 'notes', 'created_at'
         ]
-        read_only_fields = ['id', 'line_total', 'created_at']
+        read_only_fields = ['id', 'created_at']
     
     def validate(self, data):
         if data['start_datetime'] >= data['end_datetime']:
             raise serializers.ValidationError("End datetime must be after start datetime")
         return data
+    
+    def create(self, validated_data):
+        """Create rental item with automatic line_total calculation"""
+        instance = RentalItem(**validated_data)
+        # Calculate line_total if not provided
+        if not validated_data.get('line_total'):
+            instance.calculate_line_total()
+        instance.save()
+        return instance
+    
+    def update(self, instance, validated_data):
+        """Update rental item with automatic line_total recalculation"""
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
+        
+        # Recalculate line_total if price-related fields changed
+        if any(key in validated_data for key in ['unit_price', 'quantity', 'discount_amount']):
+            instance.calculate_line_total()
+        
+        instance.save()
+        return instance
 
 
 class ReservationItemSerializer(serializers.ModelSerializer):

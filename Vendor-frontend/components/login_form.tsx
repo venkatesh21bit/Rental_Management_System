@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { API_URL } from "@/utils/auth_fn";
+import { authStorage } from "@/utils/localStorage";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import React, { useState } from "react";
@@ -64,8 +65,16 @@ export function LoginForm({
 
       if (data.success && data.data && data.data.token) {
         console.log("✅ Login Successful!");
-        localStorage.setItem("access_token", data.data.token);
-        localStorage.setItem("refresh_token", data.data.refresh_token);
+        
+        // Store tokens using authStorage
+        authStorage.setToken(data.data.token);
+        authStorage.setRefreshToken(data.data.refresh_token);
+        
+        // Store user data if available
+        if (data.data.user) {
+          authStorage.setUser(data.data.user);
+          console.log("📝 User data stored:", data.data.user);
+        }
         
         setSuccessMessage("Login successful! Redirecting...");
         setError(""); // Clear any existing errors
@@ -82,11 +91,31 @@ export function LoginForm({
             const companies = await companyRes.json();
             // If only one company, store its id
             if (Array.isArray(companies) && companies.length > 0) {
-              localStorage.setItem("company_id", companies[0].id);
+              authStorage.setCompanyId(companies[0].id);
             }
           }
         } catch (companyError) {
           console.warn("Could not fetch company data:", companyError);
+        }
+
+        // If user data wasn't in login response, try to fetch it
+        if (!data.data.user) {
+          try {
+            console.log("🔄 Fetching user profile...");
+            const userRes = await fetch(`${API_URL}/auth/profile/`, {
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${data.data.token}`,
+              },
+            });
+            if (userRes.ok) {
+              const userData = await userRes.json();
+              authStorage.setUser(userData);
+              console.log("📝 User data fetched and stored:", userData);
+            }
+          } catch (userError) {
+            console.warn("Could not fetch user profile:", userError);
+          }
         }
 
         setTimeout(() => {

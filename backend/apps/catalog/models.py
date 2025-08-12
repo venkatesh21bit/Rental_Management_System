@@ -91,6 +91,15 @@ class Product(models.Model):
     weight = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True)
     dimensions = models.CharField(max_length=100, blank=True, help_text="L x W x H")
     
+    # Pricing - Simple daily rate for easy API access
+    daily_rate = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        null=True, 
+        blank=True,
+        help_text="Default daily rental rate (can be overridden by pricing rules)"
+    )
+    
     # Additional Information
     brand = models.CharField(max_length=100, blank=True)
     model = models.CharField(max_length=100, blank=True)

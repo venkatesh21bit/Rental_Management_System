@@ -15,7 +15,6 @@ downloads/
 eggs/
 .eggs/
 # lib/  # Commented out - too broad, ignores frontend lib directory
-lib64/
 parts/
 sdist/
 var/
