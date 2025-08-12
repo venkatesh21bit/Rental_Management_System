@@ -59,19 +59,13 @@ export default function VendorAnalytics() {
     const fetchAnalytics = async () => {
       try {
         setLoading(true);
+        setError(null);
         
-        // Fetch analytics data
-        const response = await fetchWithAuth(`${API_URL}/vendor/analytics/?period=${timeRange}`);
-        if (response.ok) {
-          const data = await response.json();
-          setAnalytics(data);
-        } else {
-          // If vendor analytics endpoint doesn't exist, simulate data
-          await fetchBasicData();
-        }
+        // Since /vendor/analytics/ doesn't exist, fetch basic data from existing endpoints
+        await fetchBasicData();
       } catch (err) {
         console.error('Error fetching analytics:', err);
-        await fetchBasicData();
+        setError('Failed to load analytics data');
       } finally {
         setLoading(false);
       }
@@ -89,15 +83,40 @@ export default function VendorAnalytics() {
         let totalOrders = 0;
         let activeProducts = 0;
         const customers = new Set();
+        const monthlyData: { [key: string]: { revenue: number; orders: number } } = {};
+        const productStats: { [key: string]: { orders: number; revenue: number } } = {};
+        const statusStats: { [key: string]: number } = {};
 
+        // Process products data
         if (productsRes.ok) {
           const productsData = await productsRes.json();
-          activeProducts = productsData.results?.filter((p: any) => p.status === 'active')?.length || 0;
+          let products = [];
+          
+          // Handle different response formats
+          if (productsData.success && productsData.data && productsData.data.products) {
+            products = productsData.data.products;
+          } else if (productsData.results) {
+            products = productsData.results;
+          } else if (Array.isArray(productsData)) {
+            products = productsData;
+          }
+          
+          activeProducts = products.filter((p: any) => p.status === 'active' || !p.status).length;
         }
 
+        // Process orders data
         if (ordersRes.ok) {
           const ordersData = await ordersRes.json();
-          const orders = ordersData.results || [];
+          let orders = [];
+          
+          // Handle different response formats
+          if (ordersData.results) {
+            orders = ordersData.results;
+          } else if (Array.isArray(ordersData)) {
+            orders = ordersData;
+          }
+
+          totalOrders = orders.length;
           totalOrders = orders.length;
           
           orders.forEach((order: any) => {
@@ -105,16 +124,45 @@ export default function VendorAnalytics() {
             if (order.customer?.id) {
               customers.add(order.customer.id);
             }
+            
+            // Track monthly data
+            const orderDate = new Date(order.created_at);
+            const monthKey = `${orderDate.getFullYear()}-${orderDate.getMonth() + 1}`;
+            if (!monthlyData[monthKey]) {
+              monthlyData[monthKey] = { revenue: 0, orders: 0 };
+            }
+            monthlyData[monthKey].revenue += parseFloat(order.total_amount) || 0;
+            monthlyData[monthKey].orders += 1;
+            
+            // Track status stats
+            const status = order.status || 'unknown';
+            statusStats[status] = (statusStats[status] || 0) + 1;
           });
         }
 
-        setAnalytics(prev => ({
-          ...prev,
+        // Convert monthly data to array
+        const monthlyRevenue = Object.entries(monthlyData).map(([month, data]) => ({
+          month,
+          revenue: data.revenue,
+          orders: data.orders
+        }));
+
+        // Convert status stats to array
+        const ordersByStatus = Object.entries(statusStats).map(([status, count]) => ({
+          status,
+          count
+        }));
+
+        setAnalytics({
           totalRevenue,
           totalOrders,
           activeProducts,
-          totalCustomers: customers.size
-        }));
+          totalCustomers: customers.size,
+          monthlyRevenue,
+          topProducts: [], // Would need additional endpoint for this
+          ordersByStatus,
+          recentActivity: [] // Would need additional endpoint for this
+        });
       } catch (err) {
         console.error('Error fetching basic data:', err);
         setError('Failed to load analytics data');
@@ -162,13 +210,13 @@ export default function VendorAnalytics() {
       <div className="mb-8">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900 mb-2">Analytics Dashboard</h1>
-            <p className="text-gray-600">Track your rental business performance</p>
+            <h1 className="text-3xl font-bold text-white mb-2">Analytics Dashboard</h1>
+            <p className="text-gray-300">Track your rental business performance</p>
           </div>
           <select
             value={timeRange}
             onChange={(e) => setTimeRange(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value="last_7_days">Last 7 Days</option>
             <option value="last_30_days">Last 30 Days</option>
@@ -179,9 +227,9 @@ export default function VendorAnalytics() {
       </div>
 
       {error && (
-        <Card className="mb-6 border-red-200 bg-red-50">
+        <Card className="mb-6 bg-black text-white border border-gray-300">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2 text-red-700">
+            <div className="flex items-center space-x-2 text-red-400">
               <AlertCircle className="h-5 w-5" />
               <span>{error}</span>
             </div>
@@ -191,50 +239,50 @@ export default function VendorAnalytics() {
 
       {/* Key Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card>
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(analytics.totalRevenue)}</p>
+                <p className="text-sm font-medium text-gray-400">Total Revenue</p>
+                <p className="text-3xl font-bold text-white">{formatCurrency(analytics.totalRevenue)}</p>
               </div>
-              <DollarSign className="h-8 w-8 text-green-600" />
+              <DollarSign className="h-8 w-8 text-green-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                <p className="text-3xl font-bold text-gray-900">{analytics.totalOrders}</p>
+                <p className="text-sm font-medium text-gray-400">Total Orders</p>
+                <p className="text-3xl font-bold text-white">{analytics.totalOrders}</p>
               </div>
-              <Package className="h-8 w-8 text-blue-600" />
+              <Package className="h-8 w-8 text-blue-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Active Products</p>
-                <p className="text-3xl font-bold text-gray-900">{analytics.activeProducts}</p>
+                <p className="text-sm font-medium text-gray-400">Active Products</p>
+                <p className="text-3xl font-bold text-white">{analytics.activeProducts}</p>
               </div>
-              <BarChart3 className="h-8 w-8 text-purple-600" />
+              <BarChart3 className="h-8 w-8 text-purple-400" />
             </div>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Customers</p>
-                <p className="text-3xl font-bold text-gray-900">{analytics.totalCustomers}</p>
+                <p className="text-sm font-medium text-gray-400">Total Customers</p>
+                <p className="text-3xl font-bold text-white">{analytics.totalCustomers}</p>
               </div>
-              <Users className="h-8 w-8 text-orange-600" />
+              <Users className="h-8 w-8 text-orange-400" />
             </div>
           </CardContent>
         </Card>
@@ -243,9 +291,9 @@ export default function VendorAnalytics() {
       {/* Charts and Details */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Top Products */}
-        <Card>
+        <Card className="bg-black text-white border border-gray-300">
           <CardHeader>
-            <CardTitle className="flex items-center">
+            <CardTitle className="flex items-center text-white">
               <TrendingUp className="h-5 w-5 mr-2" />
               Top Performing Products
             </CardTitle>

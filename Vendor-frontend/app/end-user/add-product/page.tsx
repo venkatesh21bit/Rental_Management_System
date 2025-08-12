@@ -161,19 +161,19 @@ export default function AddProduct() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-4 py-8 bg-black min-h-screen">
       <div className="max-w-2xl mx-auto">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Add New Product</h1>
-          <p className="text-gray-600">Create a new rental product listing</p>
+          <h1 className="text-3xl font-bold text-white mb-2">Add New Product</h1>
+          <p className="text-white">Create a new rental product listing</p>
         </div>
 
         {/* Success/Error Messages */}
         {success && (
-          <Card className="mb-6 border-green-200 bg-green-50">
+          <Card className="mb-6 bg-black text-white border border-gray-300">
             <CardContent className="p-4">
-              <div className="flex items-center space-x-2 text-green-700">
+              <div className="flex items-center space-x-2 text-white">
                 <CheckCircle className="h-5 w-5" />
                 <span>{success}</span>
               </div>
@@ -182,9 +182,9 @@ export default function AddProduct() {
         )}
 
         {error && (
-          <Card className="mb-6 border-red-200 bg-red-50">
+          <Card className="mb-6 bg-black text-white border border-gray-300">
             <CardContent className="p-4">
-              <div className="flex items-center space-x-2 text-red-700">
+              <div className="flex items-center space-x-2 text-white">
                 <AlertCircle className="h-5 w-5" />
                 <span>{error}</span>
               </div>
@@ -194,16 +194,16 @@ export default function AddProduct() {
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Basic Information */}
-          <Card>
+          <Card className="bg-black text-white border border-gray-300">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Package className="h-5 w-5 mr-2" />
                 Basic Information
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="name">Product Name *</Label>
+                <Label htmlFor="name" className="text-white">Product Name *</Label>
                 <Input
                   id="name"
                   name="name"
@@ -211,45 +211,63 @@ export default function AddProduct() {
                   onChange={handleInputChange}
                   placeholder="Enter product name"
                   required
+                  className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                 />
               </div>
 
               <div>
-                <Label htmlFor="description">Description *</Label>
+                <Label htmlFor="description" className="text-white">Description *</Label>
                 <textarea
                   id="description"
                   name="description"
                   value={formData.description}
                   onChange={handleInputChange}
                   placeholder="Describe your product in detail"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder:text-white/60"
                   rows={4}
                   required
                 />
               </div>
 
               <div>
-                <Label htmlFor="category">Category *</Label>
+                <Label htmlFor="category" className="text-white">Category *</Label>
                 <select
                   id="category"
                   name="category"
                   value={formData.category}
                   onChange={handleInputChange}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
+                  disabled={loading}
                 >
-                  <option value="">Select a category</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
+                  <option value="">
+                    {loading ? 'Loading categories...' : 'Select a category'}
+                  </option>
+                  {categories.length > 0 ? (
+                    categories.map(category => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))
+                  ) : (
+                    !loading && (
+                      <option value="" disabled>
+                        No categories available
+                      </option>
+                    )
+                  )}
                 </select>
+                {/* Debug info */}
+                {process.env.NODE_ENV === 'development' && (
+                  <div className="text-xs text-gray-400 mt-1">
+                    Categories loaded: {categories.length}
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="quantity_available">Quantity Available *</Label>
+                  <Label htmlFor="quantity_available" className="text-white">Quantity Available *</Label>
                   <Input
                     id="quantity_available"
                     name="quantity_available"
@@ -258,17 +276,18 @@ export default function AddProduct() {
                     value={formData.quantity_available}
                     onChange={handleInputChange}
                     required
+                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="status">Status</Label>
+                  <Label htmlFor="status" className="text-white">Status</Label>
                   <select
                     id="status"
                     name="status"
                     value={formData.status}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className="w-full px-3 py-2 bg-gray-900 text-white border border-gray-700 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -280,9 +299,9 @@ export default function AddProduct() {
           </Card>
 
           {/* Pricing */}
-          <Card>
+          <Card className="bg-black text-white border border-gray-300">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <DollarSign className="h-5 w-5 mr-2" />
                 Pricing
               </CardTitle>
@@ -290,7 +309,7 @@ export default function AddProduct() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="price_per_hour">Price per Hour ($)</Label>
+                  <Label htmlFor="price_per_hour" className="text-white">Price per Hour ($)</Label>
                   <Input
                     id="price_per_hour"
                     name="price_per_hour"
@@ -300,11 +319,12 @@ export default function AddProduct() {
                     value={formData.price_per_hour}
                     onChange={handleInputChange}
                     placeholder="0.00"
+                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="price_per_day">Price per Day ($) *</Label>
+                  <Label htmlFor="price_per_day" className="text-white">Price per Day ($) *</Label>
                   <Input
                     id="price_per_day"
                     name="price_per_day"
@@ -315,11 +335,12 @@ export default function AddProduct() {
                     onChange={handleInputChange}
                     placeholder="0.00"
                     required
+                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="price_per_week">Price per Week ($)</Label>
+                  <Label htmlFor="price_per_week" className="text-white">Price per Week ($)</Label>
                   <Input
                     id="price_per_week"
                     name="price_per_week"
@@ -329,11 +350,12 @@ export default function AddProduct() {
                     value={formData.price_per_week}
                     onChange={handleInputChange}
                     placeholder="0.00"
+                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="price_per_month">Price per Month ($)</Label>
+                  <Label htmlFor="price_per_month" className="text-white">Price per Month ($)</Label>
                   <Input
                     id="price_per_month"
                     name="price_per_month"
@@ -343,12 +365,13 @@ export default function AddProduct() {
                     value={formData.price_per_month}
                     onChange={handleInputChange}
                     placeholder="0.00"
+                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />
                 </div>
               </div>
 
               <div>
-                <Label htmlFor="deposit_amount">Security Deposit ($)</Label>
+                <Label htmlFor="deposit_amount" className="text-white">Security Deposit ($)</Label>
                 <Input
                   id="deposit_amount"
                   name="deposit_amount"
@@ -358,15 +381,16 @@ export default function AddProduct() {
                   value={formData.deposit_amount}
                   onChange={handleInputChange}
                   placeholder="0.00"
+                  className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                 />
               </div>
             </CardContent>
           </Card>
 
           {/* Rental Terms */}
-          <Card>
+          <Card className="bg-black text-white border border-gray-300">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Clock className="h-5 w-5 mr-2" />
                 Rental Terms
               </CardTitle>
@@ -374,7 +398,7 @@ export default function AddProduct() {
             <CardContent className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="minimum_rental_period">Minimum Rental (days) *</Label>
+                  <Label htmlFor="minimum_rental_period" className="text-white">Minimum Rental (days) *</Label>
                   <Input
                     id="minimum_rental_period"
                     name="minimum_rental_period"
@@ -383,11 +407,12 @@ export default function AddProduct() {
                     value={formData.minimum_rental_period}
                     onChange={handleInputChange}
                     required
+                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />
                 </div>
 
                 <div>
-                  <Label htmlFor="maximum_rental_period">Maximum Rental (days)</Label>
+                  <Label htmlFor="maximum_rental_period" className="text-white">Maximum Rental (days)</Label>
                   <Input
                     id="maximum_rental_period"
                     name="maximum_rental_period"
@@ -395,6 +420,7 @@ export default function AddProduct() {
                     min="1"
                     value={formData.maximum_rental_period}
                     onChange={handleInputChange}
+                    className="bg-gray-900 text-white border border-gray-700 placeholder:text-white/60"
                   />
                 </div>
               </div>
@@ -402,9 +428,9 @@ export default function AddProduct() {
           </Card>
 
           {/* Product Images */}
-          <Card>
+          <Card className="bg-black text-white border border-gray-300">
             <CardHeader>
-              <CardTitle className="flex items-center">
+              <CardTitle className="flex items-center text-white">
                 <Upload className="h-5 w-5 mr-2" />
                 Product Images
               </CardTitle>
@@ -422,11 +448,11 @@ export default function AddProduct() {
                   />
                   <Label
                     htmlFor="images"
-                    className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-300 rounded-lg cursor-pointer hover:border-gray-400 transition-colors"
+                    className="flex items-center justify-center w-full h-32 border-2 border-dashed border-gray-700 rounded-lg cursor-pointer hover:border-gray-600 transition-colors"
                   >
                     <div className="text-center">
-                      <Upload className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <span className="text-sm text-gray-600">
+                      <Upload className="h-8 w-8 text-white/60 mx-auto mb-2" />
+                      <span className="text-sm text-white">
                         Click to upload images (Max 5)
                       </span>
                     </div>
@@ -440,7 +466,7 @@ export default function AddProduct() {
                         <img
                           src={url}
                           alt={`Preview ${index + 1}`}
-                          className="w-full h-24 object-cover rounded-lg border"
+                          className="w-full h-24 object-cover rounded-lg border border-gray-700"
                         />
                         <button
                           type="button"
@@ -468,14 +494,14 @@ export default function AddProduct() {
               type="button"
               variant="outline"
               onClick={() => router.back()}
-              className="flex-1"
+              className="flex-1 text-white border-gray-700 hover:bg-gray-800"
             >
               Cancel
             </Button>
             <Button
               type="submit"
               disabled={submitLoading}
-              className="flex-1"
+              className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
             >
               {submitLoading ? 'Adding Product...' : 'Add Product'}
             </Button>
