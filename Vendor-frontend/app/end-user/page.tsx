@@ -139,10 +139,10 @@ export default function EndUserDashboard() {
         <div className="animate-pulse space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="bg-gray-800 h-32 rounded-lg"></div>
+              <div key={i} className="bg-gray-800 h-32 rounded-lg border border-gray-600"></div>
             ))}
           </div>
-          <div className="bg-gray-800 h-64 rounded-lg"></div>
+          <div className="bg-gray-800 h-64 rounded-lg border border-gray-600"></div>
         </div>
       </div>
     );
@@ -151,7 +151,7 @@ export default function EndUserDashboard() {
   if (error) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <Card className="p-6 text-center bg-gray-800 border-gray-700">
+        <Card className="p-6 text-center bg-black text-white border border-gray-300">
           <AlertCircle className="h-12 w-12 text-red-400 mx-auto mb-4" />
           <h3 className="text-lg font-semibold text-white mb-2">Error Loading Dashboard</h3>
           <p className="text-gray-300">{error}</p>
@@ -170,7 +170,7 @@ export default function EndUserDashboard() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -182,7 +182,7 @@ export default function EndUserDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -194,7 +194,7 @@ export default function EndUserDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -206,7 +206,7 @@ export default function EndUserDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
@@ -221,7 +221,7 @@ export default function EndUserDashboard() {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="text-center">
               <Plus className="h-12 w-12 text-blue-400 mx-auto mb-4" />
@@ -234,7 +234,7 @@ export default function EndUserDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="text-center">
               <Package className="h-12 w-12 text-green-400 mx-auto mb-4" />
@@ -247,7 +247,7 @@ export default function EndUserDashboard() {
           </CardContent>
         </Card>
 
-        <Card className="bg-gray-800 border-gray-700">
+        <Card className="bg-black text-white border border-gray-300">
           <CardContent className="p-6">
             <div className="text-center">
               <TrendingUp className="h-12 w-12 text-purple-400 mx-auto mb-4" />
@@ -262,11 +262,11 @@ export default function EndUserDashboard() {
       </div>
 
       {/* Recent Orders */}
-      <Card>
+      <Card className="bg-black text-white border border-gray-300">
         <CardHeader>
-          <CardTitle className="flex items-center justify-between">
+          <CardTitle className="flex items-center justify-between text-white">
             Recent Orders from Customers
-            <Button asChild variant="outline" size="sm">
+            <Button asChild variant="outline" size="sm" className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
               <a href="/end-user/orders">View All</a>
             </Button>
           </CardTitle>
@@ -275,36 +275,36 @@ export default function EndUserDashboard() {
           {recentOrders.length === 0 ? (
             <div className="text-center py-8">
               <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-semibold text-gray-600 mb-2">No orders yet</h3>
-              <p className="text-gray-500 mb-4">Start adding products to receive rental orders</p>
-              <Button asChild>
+              <h3 className="text-lg font-semibold text-gray-300 mb-2">No orders yet</h3>
+              <p className="text-gray-400 mb-4">Start adding products to receive rental orders</p>
+              <Button asChild className="bg-blue-600 hover:bg-blue-700">
                 <a href="/end-user/add-product">Add Your First Product</a>
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
               {recentOrders.map((order) => (
-                <div key={order.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                <div key={order.id} className="border border-gray-600 rounded-lg p-4 hover:bg-gray-800 transition-colors">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center space-x-3">
-                      <h4 className="font-semibold">{order.order_number}</h4>
+                      <h4 className="font-semibold text-white">{order.order_number}</h4>
                       <Badge className={getStatusColor(order.status)}>
                         {order.status}
                       </Badge>
                     </div>
                     <div className="text-right">
-                      <div className="font-semibold">{formatCurrency(order.total_amount)}</div>
-                      <div className="text-sm text-gray-500">{formatDate(order.created_at)}</div>
+                      <div className="font-semibold text-white">{formatCurrency(order.total_amount)}</div>
+                      <div className="text-sm text-gray-400">{formatDate(order.created_at)}</div>
                     </div>
                   </div>
                   {order.customer_name && (
                     <div className="mb-2">
-                      <p className="text-sm text-gray-600">Customer: {order.customer_name}</p>
+                      <p className="text-sm text-gray-300">Customer: {order.customer_name}</p>
                     </div>
                   )}
                   {order.items && order.items.length > 0 && (
                     <div className="mt-2">
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray-300">
                         {order.items.map(item => item.product_name).join(', ')}
                       </p>
                     </div>

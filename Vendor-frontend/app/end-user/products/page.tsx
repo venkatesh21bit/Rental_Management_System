@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -27,13 +28,13 @@ interface Product {
   price_per_day: number;
   price_per_hour: number;
   price_per_week: number;
-  status: string;
-  availability_status: string;
+  status?: string;
+  availability_status?: string;
   images: Array<{ id: number; image: string; is_primary: boolean }>;
   created_at: string;
   updated_at: string;
-  total_orders: number;
-  total_revenue: number;
+  total_orders?: number;
+  total_revenue?: number;
 }
 
 export default function MyProducts() {
@@ -42,11 +43,29 @@ export default function MyProducts() {
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [filterStatus, setFilterStatus] = useState('all');
+  const router = useRouter();
 
   useEffect(() => {
     const fetchProducts = async () => {
       try {
         setLoading(true);
+        setError(null);
+        
+        // Debug: Check if user is authenticated
+        const token = localStorage.getItem("access_token");
+        console.log("🔍 Debug - Token exists:", !!token);
+        console.log("🔍 Debug - Token:", token ? token.substring(0, 20) + "..." : "null");
+        console.log("🔍 Debug - API_URL:", API_URL);
+        
+        if (!token) {
+          setError('Please log in to view your products');
+          setLoading(false);
+          // Redirect to authentication page
+          setTimeout(() => {
+            router.push('/authentication');
+          }, 2000);
+          return;
+        }
         
         let url = `${API_URL}/catalog/products/`;
         if (searchQuery) {
@@ -56,16 +75,39 @@ export default function MyProducts() {
           url += `${searchQuery ? '&' : '?'}status=${filterStatus}`;
         }
         
+        console.log("🔍 Debug - API URL:", url);
+        
         const response = await fetchWithAuth(url);
+        console.log("🔍 Debug - Response status:", response.status);
+        console.log("🔍 Debug - Response ok:", response.ok);
+        
         if (response.ok) {
           const data = await response.json();
-          setProducts(data.results || []);
+          console.log("🔍 Debug - Response data:", data);
+          
+          // Handle different response formats based on the actual API response
+          if (data.success && data.data && data.data.products) {
+            // New API format: {success: true, data: {products: [...]}}
+            setProducts(data.data.products || []);
+          } else if (data.results) {
+            // Paginated format: {results: [...], count: x, next: null, previous: null}
+            setProducts(data.results || []);
+          } else if (Array.isArray(data)) {
+            // Direct array format: [...]
+            setProducts(data);
+          } else {
+            // Fallback
+            console.warn("Unexpected data format:", data);
+            setProducts([]);
+          }
         } else {
-          setError('Failed to fetch products');
+          const errorData = await response.text();
+          console.error("🔍 Debug - Error response:", errorData);
+          setError(`Failed to fetch products: ${response.status} ${response.statusText}`);
         }
       } catch (err) {
         console.error('Error fetching products:', err);
-        setError('Failed to load products');
+        setError(`Failed to load products: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -95,7 +137,9 @@ export default function MyProducts() {
     }
   };
 
-  const getStatusColor = (status: string) => {
+  const getStatusColor = (status: string | undefined) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
+    
     switch (status.toLowerCase()) {
       case 'active':
         return 'bg-green-100 text-green-800';
@@ -108,7 +152,9 @@ export default function MyProducts() {
     }
   };
 
-  const getAvailabilityColor = (status: string) => {
+  const getAvailabilityColor = (status: string | undefined) => {
+    if (!status) return 'bg-gray-100 text-gray-800';
+    
     switch (status.toLowerCase()) {
       case 'available':
         return 'bg-green-100 text-green-800';
@@ -193,9 +239,9 @@ export default function MyProducts() {
       </div>
 
       {error && (
-        <Card className="mb-6 border-red-200 bg-red-50">
+        <Card className="mb-6 bg-black text-white border border-gray-300">
           <CardContent className="p-6">
-            <div className="flex items-center space-x-2 text-red-700">
+            <div className="flex items-center space-x-2 text-red-400">
               <AlertCircle className="h-5 w-5" />
               <span>{error}</span>
             </div>
@@ -224,7 +270,7 @@ export default function MyProducts() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {products.map((product) => (
-            <Card key={product.id} className="overflow-hidden">
+            <Card key={product.id} className="overflow-hidden bg-black text-white border border-gray-300">
               <div className="aspect-video bg-gray-100 relative">
                 {product.images && product.images.length > 0 ? (
                   <img
@@ -238,52 +284,56 @@ export default function MyProducts() {
                   </div>
                 )}
                 <div className="absolute top-2 right-2 flex gap-2">
-                  <Badge className={getStatusColor(product.status)}>
-                    {product.status}
-                  </Badge>
-                  <Badge className={getAvailabilityColor(product.availability_status)}>
-                    {product.availability_status}
-                  </Badge>
+                  {product.status && (
+                    <Badge className={getStatusColor(product.status)}>
+                      {product.status}
+                    </Badge>
+                  )}
+                  {product.availability_status && (
+                    <Badge className={getAvailabilityColor(product.availability_status)}>
+                      {product.availability_status}
+                    </Badge>
+                  )}
                 </div>
               </div>
               
               <CardContent className="p-4">
                 <div className="mb-3">
-                  <h3 className="font-semibold text-lg mb-1 line-clamp-1">{product.name}</h3>
-                  <p className="text-sm text-gray-600 mb-2">{product.category_name}</p>
-                  <p className="text-sm text-gray-700 line-clamp-2">{product.description}</p>
+                  <h3 className="font-semibold text-lg mb-1 line-clamp-1 text-white">{product.name}</h3>
+                  <p className="text-sm text-gray-400 mb-2">{product.category_name}</p>
+                  <p className="text-sm text-gray-300 line-clamp-2">{product.description}</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2 text-sm mb-4">
                   <div>
-                    <span className="text-gray-500">Per Hour: </span>
-                    <span className="font-medium">{formatCurrency(product.price_per_hour)}</span>
+                    <span className="text-gray-400">Per Hour: </span>
+                    <span className="font-medium text-white">{formatCurrency(product.price_per_hour)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Per Day: </span>
-                    <span className="font-medium">{formatCurrency(product.price_per_day)}</span>
+                    <span className="text-gray-400">Per Day: </span>
+                    <span className="font-medium text-white">{formatCurrency(product.price_per_day)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Per Week: </span>
-                    <span className="font-medium">{formatCurrency(product.price_per_week)}</span>
+                    <span className="text-gray-400">Per Week: </span>
+                    <span className="font-medium text-white">{formatCurrency(product.price_per_week)}</span>
                   </div>
                   <div>
-                    <span className="text-gray-500">Orders: </span>
-                    <span className="font-medium">{product.total_orders || 0}</span>
+                    <span className="text-gray-400">Orders: </span>
+                    <span className="font-medium text-white">{product.total_orders || 0}</span>
                   </div>
                 </div>
 
                 <div className="flex items-center justify-between">
-                  <div className="text-xs text-gray-500">
+                  <div className="text-xs text-gray-400">
                     Updated {formatDate(product.updated_at)}
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" variant="outline" asChild>
+                    <Button size="sm" variant="outline" asChild className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
                       <a href={`/end-user/products/${product.id}`}>
                         <Eye className="h-3 w-3" />
                       </a>
                     </Button>
-                    <Button size="sm" variant="outline" asChild>
+                    <Button size="sm" variant="outline" asChild className="border-gray-600 text-gray-300 hover:bg-gray-700 hover:text-white">
                       <a href={`/end-user/products/${product.id}/edit`}>
                         <Edit className="h-3 w-3" />
                       </a>
@@ -292,7 +342,7 @@ export default function MyProducts() {
                       size="sm" 
                       variant="outline" 
                       onClick={() => handleDeleteProduct(product.id)}
-                      className="text-red-600 hover:text-red-700"
+                      className="text-red-400 hover:text-red-300 border-gray-600 hover:bg-gray-700"
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
