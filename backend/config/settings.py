@@ -51,6 +51,7 @@ INSTALLED_APPS = [
     'django_celery_results',
     'django_filters',
     'django_extensions',
+    'drf_spectacular',
     
     # Local apps
     'apps.accounts',
@@ -188,6 +189,16 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.JSONParser',
         'rest_framework.parsers.MultiPartParser',
     ],
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
+}
+
+# DRF Spectacular settings
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'Rental Management System API',
+    'DESCRIPTION': 'API documentation for the Rental Management System',
+    'VERSION': '1.0.0',
+    'SERVE_INCLUDE_SCHEMA': False,
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
 # JWT Settings
