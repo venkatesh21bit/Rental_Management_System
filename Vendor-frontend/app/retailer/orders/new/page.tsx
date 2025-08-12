@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import { Navbar as RetailerNavbar } from '../../../../components/retailer/Navbar';
 import { API_URL, fetchWithAuth } from '../../../../utils/auth_fn';
+import { authStorage } from '../../../../utils/localStorage';
 
 interface Product {
   id: number;
@@ -67,6 +68,13 @@ const NewOrderPage = () => {
 
   useEffect(() => {
     fetchProducts();
+    
+    // Debug: Check if user data is available
+    const userData = authStorage.getUser();
+    console.log('User data in localStorage:', userData);
+    if (!userData) {
+      console.warn('No user data found in localStorage. Order creation may fail.');
+    }
   }, []);
 
   const fetchProducts = async () => {
@@ -94,6 +102,13 @@ const NewOrderPage = () => {
 
   const addToOrder = (product: Product) => {
     console.log('Adding product to order:', product);
+    console.log('Product daily_rate:', product.daily_rate);
+    
+    if (!product.daily_rate || product.daily_rate <= 0) {
+      alert(`Product "${product.name}" does not have a valid daily rate. Please contact support.`);
+      return;
+    }
+    
     const existingItem = orderItems.find(item => item.product.id === product.id);
     if (existingItem) {
       const newQuantity = Math.min(existingItem.quantity + 1, product.available_quantity);
@@ -178,25 +193,65 @@ const NewOrderPage = () => {
 
     setLoading(true);
     try {
-      // First get the current user info to use as customer
-      const userResponse = await fetchWithAuth(`${API_URL}/auth/user/`);
+      // Get user data from localStorage instead of API call
+      const userData = authStorage.getUser();
       let customerId = null;
       
-      if (userResponse.ok) {
-        const userData = await userResponse.json();
+      if (userData && userData.id) {
         customerId = userData.id;
+      } else {
+        // Fallback: try to get user ID from alternative sources
+        console.warn('User data not found in localStorage, attempting fallback...');
+        
+        // Try to decode JWT token to get user ID
+        const token = authStorage.getToken();
+        if (token) {
+          try {
+            const payload = JSON.parse(atob(token.split('.')[1]));
+            customerId = payload.user_id || payload.sub;
+            console.log('Extracted user ID from token:', customerId);
+          } catch (e) {
+            console.error('Failed to decode token:', e);
+          }
+        }
+        
+        if (!customerId) {
+          alert('Unable to identify user. Please log in again.');
+          router.push('/authentication');
+          return;
+        }
       }
 
       const orderData = {
-        customer_id: customerId, // Add the required customer_id field
+        customer_id: customerId,
         rental_start: rentalStartDate,
         rental_end: rentalEndDate,
-        items: orderItems.map(item => ({
-          product: item.product.id,
-          quantity: item.quantity,
-          unit_price: item.product.daily_rate || 0, // Include unit price
-          rental_duration_days: Math.ceil((new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) / (1000 * 60 * 60 * 24))
-        })),
+        items: orderItems.map(item => {
+          const rentalDays = Math.ceil((new Date(rentalEndDate).getTime() - new Date(rentalStartDate).getTime()) / (1000 * 60 * 60 * 24));
+          const unitPrice = parseFloat(String(item.product.daily_rate || 0));
+          const lineTotal = parseFloat((unitPrice * item.quantity * rentalDays).toFixed(2));
+          
+          console.log('Order item calculation:', {
+            product: item.product.name,
+            unitPrice,
+            quantity: item.quantity,
+            rentalDays,
+            lineTotal
+          });
+          
+          return {
+            product_id: item.product.id,
+            quantity: item.quantity,
+            start_datetime: rentalStartDate + 'T00:00:00Z',
+            end_datetime: rentalEndDate + 'T23:59:59Z',
+            unit_price: unitPrice,
+            line_total: lineTotal,
+            total: lineTotal, // Add both field names in case backend expects 'total'
+            rental_duration_days: rentalDays,
+            rental_unit: 'DAY',
+            price: unitPrice // Add alternative price field name
+          };
+        }),
         delivery_address: {
           address_line_1: deliveryAddress.street,
           city: deliveryAddress.city,
@@ -207,6 +262,12 @@ const NewOrderPage = () => {
       };
 
       console.log('Creating order with data:', orderData);
+      console.log('User data from localStorage:', userData);
+      console.log('Order items with pricing:', orderItems.map(item => ({
+        name: item.product.name,
+        daily_rate: item.product.daily_rate,
+        quantity: item.quantity
+      })));
 
       const response = await fetchWithAuth(`${API_URL}/orders/orders/`, {
         method: 'POST',

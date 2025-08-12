@@ -93,7 +93,12 @@ class ProductSerializer(serializers.ModelSerializer):
         return None
     
     def get_daily_rate(self, obj):
-        """Get daily rental rate from pricing rules"""
+        """Get daily rental rate - prioritize direct field, then pricing rules"""
+        # First check if product has a direct daily_rate
+        if obj.daily_rate:
+            return float(obj.daily_rate)
+        
+        # Fall back to pricing rules
         try:
             from apps.pricing.models import PriceRule
             rule = PriceRule.objects.filter(
@@ -171,8 +176,8 @@ class ProductCreateUpdateSerializer(serializers.ModelSerializer):
         fields = [
             'sku', 'name', 'description', 'category', 'rentable', 'tracking',
             'default_rental_unit', 'min_rental_duration', 'max_rental_duration',
-            'quantity_on_hand', 'weight', 'dimensions', 'brand', 'model',
-            'year', 'condition_notes', 'is_active'
+            'quantity_on_hand', 'daily_rate', 'weight', 'dimensions', 'brand', 
+            'model', 'year', 'condition_notes', 'is_active'
         ]
     
     def validate_sku(self, value):
