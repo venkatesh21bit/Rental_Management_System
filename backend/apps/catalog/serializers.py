@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import ProductCategory, Product, ProductImage, ProductItem
+from django.db.models import Min
 
 
 class ProductCategorySerializer(serializers.ModelSerializer):
@@ -59,6 +60,13 @@ class ProductSerializer(serializers.ModelSerializer):
     is_available = serializers.ReadOnlyField()
     primary_image = serializers.SerializerMethodField()
     
+    # Pricing information from pricing app
+    daily_rate = serializers.SerializerMethodField()
+    weekly_rate = serializers.SerializerMethodField()
+    monthly_rate = serializers.SerializerMethodField()
+    hourly_rate = serializers.SerializerMethodField()
+    security_deposit = serializers.SerializerMethodField()
+    
     class Meta:
         model = Product
         fields = [
@@ -68,10 +76,12 @@ class ProductSerializer(serializers.ModelSerializer):
             'quantity_reserved', 'quantity_rented', 'available_quantity',
             'weight', 'dimensions', 'brand', 'model', 'year', 'condition_notes',
             'is_active', 'is_available', 'created_at', 'updated_at', 'images',
-            'items', 'primary_image'
+            'items', 'primary_image', 'daily_rate', 'weekly_rate', 'monthly_rate',
+            'hourly_rate', 'security_deposit'
         ]
         read_only_fields = [
-            'id', 'available_quantity', 'is_available', 'created_at', 'updated_at'
+            'id', 'available_quantity', 'is_available', 'created_at', 'updated_at',
+            'daily_rate', 'weekly_rate', 'monthly_rate', 'hourly_rate', 'security_deposit'
         ]
     
     def get_primary_image(self, obj):
@@ -81,6 +91,66 @@ class ProductSerializer(serializers.ModelSerializer):
         elif obj.images.exists():
             return ProductImageSerializer(obj.images.first()).data
         return None
+    
+    def get_daily_rate(self, obj):
+        """Get daily rental rate from pricing rules"""
+        try:
+            from apps.pricing.models import PriceRule
+            rule = PriceRule.objects.filter(
+                product=obj,
+                is_active=True,
+                rate_day__isnull=False
+            ).first()
+            return float(rule.rate_day) if rule else None
+        except ImportError:
+            return None
+    
+    def get_weekly_rate(self, obj):
+        """Get weekly rental rate from pricing rules"""
+        try:
+            from apps.pricing.models import PriceRule
+            rule = PriceRule.objects.filter(
+                product=obj,
+                is_active=True,
+                rate_week__isnull=False
+            ).first()
+            return float(rule.rate_week) if rule else None
+        except ImportError:
+            return None
+    
+    def get_monthly_rate(self, obj):
+        """Get monthly rental rate from pricing rules"""
+        try:
+            from apps.pricing.models import PriceRule
+            rule = PriceRule.objects.filter(
+                product=obj,
+                is_active=True,
+                rate_month__isnull=False
+            ).first()
+            return float(rule.rate_month) if rule else None
+        except ImportError:
+            return None
+    
+    def get_hourly_rate(self, obj):
+        """Get hourly rental rate from pricing rules"""
+        try:
+            from apps.pricing.models import PriceRule
+            rule = PriceRule.objects.filter(
+                product=obj,
+                is_active=True,
+                rate_hour__isnull=False
+            ).first()
+            return float(rule.rate_hour) if rule else None
+        except ImportError:
+            return None
+    
+    def get_security_deposit(self, obj):
+        """Get security deposit amount - could be a percentage of daily rate"""
+        daily_rate = self.get_daily_rate(obj)
+        if daily_rate:
+            # Default to 100% of daily rate as security deposit
+            return daily_rate
+        return None
 
 
 class ProductListSerializer(ProductSerializer):
@@ -89,7 +159,8 @@ class ProductListSerializer(ProductSerializer):
         fields = [
             'id', 'sku', 'name', 'description', 'category_name', 'category_path',
             'rentable', 'default_rental_unit', 'available_quantity', 'brand',
-            'model', 'is_active', 'is_available', 'primary_image'
+            'model', 'is_active', 'is_available', 'primary_image', 'daily_rate',
+            'weekly_rate', 'monthly_rate', 'hourly_rate', 'security_deposit'
         ]
 
 
