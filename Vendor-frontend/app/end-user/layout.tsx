@@ -6,7 +6,7 @@ export default function EndUserLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-gray-900">
+    <div className="min-h-screen bg-black">
       <Navbar />
       <main className="py-6">
         {children}

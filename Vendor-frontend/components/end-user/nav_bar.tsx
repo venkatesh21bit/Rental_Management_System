@@ -40,7 +40,7 @@ export function Navbar() {
   };
 
   return (
-    <nav className="bg-gray-900 border-b border-gray-700">
+    <nav className="bg-black border-b border-gray-700">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="relative flex h-16 items-center justify-between">
           {/* Mobile menu button */}
