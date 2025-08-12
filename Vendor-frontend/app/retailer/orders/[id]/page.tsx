@@ -27,21 +27,21 @@ interface OrderDetails {
     phone?: string;
     address?: string;
   };
-  status: string;
+  status?: string;
   rental_start_date: string;
   rental_end_date: string;
-  total_amount: number;
-  deposit_amount: number;
+  total_amount?: number;
+  deposit_amount?: number;
   created_at: string;
   updated_at: string;
-  items: OrderItem[];
+  items?: OrderItem[];
   delivery_address?: {
     street: string;
     city: string;
     state: string;
     pincode: string;
   };
-  payment_status: string;
+  payment_status?: string;
   payment_method?: string;
   notes?: string;
 }
@@ -193,9 +193,9 @@ const OrderDetailsPage = () => {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <span className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${getStatusColor(order.status)}`}>
-              {getStatusIcon(order.status)}
-              {order.status}
+            <span className={`flex items-center gap-2 px-4 py-2 rounded-lg border ${getStatusColor(order.status || 'pending')}`}>
+              {getStatusIcon(order.status || 'pending')}
+              {order.status || 'Pending'}
             </span>
             <button className="p-2 hover:bg-neutral-800 rounded-lg transition-colors">
               <Download className="h-5 w-5" />
@@ -221,12 +221,12 @@ const OrderDetailsPage = () => {
                 <div>
                   <p className="text-neutral-400">Payment Status</p>
                   <p className={`font-medium ${order.payment_status === 'paid' ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {order.payment_status}
+                    {order.payment_status ? order.payment_status.toUpperCase() : 'PENDING'}
                   </p>
                 </div>
                 <div>
                   <p className="text-neutral-400">Total Items</p>
-                  <p className="font-medium">{order.items.length}</p>
+                  <p className="font-medium">{order.items?.length || 0}</p>
                 </div>
               </div>
             </div>
@@ -235,30 +235,36 @@ const OrderDetailsPage = () => {
             <div className="bg-neutral-900 rounded-lg border border-neutral-800 p-6">
               <h2 className="text-xl font-semibold mb-4">Rental Items</h2>
               <div className="space-y-4">
-                {order.items.map((item) => (
-                  <div key={item.id} className="flex items-center justify-between p-4 bg-neutral-800 rounded-lg">
-                    <div className="flex items-center gap-4">
-                      {item.product_image && (
-                        <img
-                          src={item.product_image}
-                          alt={item.product_name}
-                          className="w-16 h-16 object-cover rounded-lg"
-                        />
-                      )}
-                      <div>
-                        <h3 className="font-semibold">{item.product_name}</h3>
-                        <p className="text-neutral-400">Quantity: {item.quantity}</p>
-                        <p className="text-neutral-400">Daily Rate: ₹{item.daily_rate}</p>
+                {order.items?.length ? (
+                  order.items.map((item) => (
+                    <div key={item.id} className="flex items-center justify-between p-4 bg-neutral-800 rounded-lg">
+                      <div className="flex items-center gap-4">
+                        {item.product_image && (
+                          <img
+                            src={item.product_image}
+                            alt={item.product_name}
+                            className="w-16 h-16 object-cover rounded-lg"
+                          />
+                        )}
+                        <div>
+                          <h3 className="font-semibold">{item.product_name}</h3>
+                          <p className="text-neutral-400">Quantity: {item.quantity}</p>
+                          <p className="text-neutral-400">Daily Rate: ₹{item.daily_rate}</p>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className="font-bold text-lg">₹{item.total_amount}</p>
+                        <p className="text-neutral-400 text-sm">
+                          ₹{item.daily_rate} × {item.quantity} × {calculateRentalDays()}
+                        </p>
                       </div>
                     </div>
-                    <div className="text-right">
-                      <p className="font-bold text-lg">₹{item.total_amount}</p>
-                      <p className="text-neutral-400 text-sm">
-                        ₹{item.daily_rate} × {item.quantity} × {calculateRentalDays()}
-                      </p>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8 text-neutral-400">
+                    No items found in this order
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -391,22 +397,22 @@ const OrderDetailsPage = () => {
               <div className="space-y-3">
                 <div className="flex justify-between">
                   <span className="text-neutral-400">Subtotal</span>
-                  <span>₹{(order.total_amount - order.deposit_amount).toLocaleString()}</span>
+                  <span>₹{((order.total_amount || 0) - (order.deposit_amount || 0)).toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-neutral-400">Security Deposit</span>
-                  <span>₹{order.deposit_amount.toLocaleString()}</span>
+                  <span>₹{(order.deposit_amount || 0).toLocaleString()}</span>
                 </div>
                 <div className="border-t border-neutral-700 pt-3">
                   <div className="flex justify-between font-bold text-lg">
                     <span>Total Amount</span>
-                    <span>₹{order.total_amount.toLocaleString()}</span>
+                    <span>₹{(order.total_amount || 0).toLocaleString()}</span>
                   </div>
                 </div>
                 <div className="mt-3">
                   <p className="text-neutral-400 text-sm">Payment Status</p>
                   <p className={`font-medium ${order.payment_status === 'paid' ? 'text-green-400' : 'text-yellow-400'}`}>
-                    {order.payment_status.toUpperCase()}
+                    {order.payment_status ? order.payment_status.toUpperCase() : 'PENDING'}
                   </p>
                 </div>
                 {order.payment_method && (

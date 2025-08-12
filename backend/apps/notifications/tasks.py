@@ -42,8 +42,8 @@ def send_order_confirmation_email(self, order_id):
                     {
                         'product_name': item.product.name,
                         'quantity': item.quantity,
-                        'rate': str(item.rate),
-                        'subtotal': str(item.quantity * item.rate)
+                        'rate': str(item.unit_price),
+                        'subtotal': str(item.line_total)
                     }
                     for item in order.items.all()
                 ]

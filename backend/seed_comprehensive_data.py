@@ -167,50 +167,50 @@ def create_sample_data():
     print("🛍️ Creating products...")
     
     products_data = [
-        # Electronics
-        ('MacBook Pro 16"', 'High-performance laptop for professionals', categories[0]),
-        ('Canon EOS R5', 'Professional mirrorless camera', categories[0]),
-        ('iPad Pro 12.9"', 'Powerful tablet for creative work', categories[0]),
-        ('Sony A7 III', 'Full-frame mirrorless camera', categories[0]),
+        # Electronics (name, description, category, daily_rate)
+        ('MacBook Pro 16"', 'High-performance laptop for professionals', categories[0], 45.00),
+        ('Canon EOS R5', 'Professional mirrorless camera', categories[0], 85.00),
+        ('iPad Pro 12.9"', 'Powerful tablet for creative work', categories[0], 25.00),
+        ('Sony A7 III', 'Full-frame mirrorless camera', categories[0], 65.00),
         
         # Tools & Equipment
-        ('DeWalt Drill Set', 'Professional cordless drill with accessories', categories[1]),
-        ('Makita Circular Saw', 'High-performance circular saw', categories[1]),
-        ('Bosch Laser Level', 'Precision laser level for construction', categories[1]),
+        ('DeWalt Drill Set', 'Professional cordless drill with accessories', categories[1], 15.00),
+        ('Makita Circular Saw', 'High-performance circular saw', categories[1], 20.00),
+        ('Bosch Laser Level', 'Precision laser level for construction', categories[1], 12.00),
         
         # Furniture
-        ('Executive Office Chair', 'Ergonomic leather office chair', categories[2]),
-        ('Standing Desk', 'Adjustable height standing desk', categories[2]),
-        ('Conference Table', 'Large conference table for meetings', categories[2]),
+        ('Executive Office Chair', 'Ergonomic leather office chair', categories[2], 8.00),
+        ('Standing Desk', 'Adjustable height standing desk', categories[2], 10.00),
+        ('Conference Table', 'Large conference table for meetings', categories[2], 18.00),
         
         # Vehicles
-        ('Tesla Model 3', 'Electric luxury sedan', categories[3]),
-        ('BMW X5', 'Premium SUV for family trips', categories[3]),
-        ('Harley Davidson', 'Classic motorcycle for adventures', categories[3]),
+        ('Tesla Model 3', 'Electric luxury sedan', categories[3], 150.00),
+        ('BMW X5', 'Premium SUV for family trips', categories[3], 180.00),
+        ('Harley Davidson', 'Classic motorcycle for adventures', categories[3], 95.00),
         
         # Sports & Recreation
-        ('Professional Bike', 'High-end mountain bike', categories[4]),
-        ('Kayak Set', 'Complete kayaking equipment', categories[4]),
-        ('Golf Cart', 'Electric golf cart', categories[4]),
+        ('Professional Bike', 'High-end mountain bike', categories[4], 22.00),
+        ('Kayak Set', 'Complete kayaking equipment', categories[4], 35.00),
+        ('Golf Cart', 'Electric golf cart', categories[4], 55.00),
         
         # Events & Parties
-        ('DJ Sound System', 'Professional audio system', categories[5]),
-        ('Party Tent 20x30', 'Large event tent', categories[5]),
-        ('LED Light Setup', 'Professional lighting system', categories[5]),
+        ('DJ Sound System', 'Professional audio system', categories[5], 75.00),
+        ('Party Tent 20x30', 'Large event tent', categories[5], 120.00),
+        ('LED Light Setup', 'Professional lighting system', categories[5], 60.00),
         
         # Construction
-        ('Mini Excavator', 'Compact excavator for construction', categories[6]),
-        ('Concrete Mixer', 'Industrial concrete mixer', categories[6]),
-        ('Scaffolding Set', 'Complete scaffolding system', categories[6]),
+        ('Mini Excavator', 'Compact excavator for construction', categories[6], 250.00),
+        ('Concrete Mixer', 'Industrial concrete mixer', categories[6], 85.00),
+        ('Scaffolding Set', 'Complete scaffolding system', categories[6], 45.00),
         
         # Photography
-        ('Studio Lighting Kit', 'Professional studio lighting', categories[7]),
-        ('Drone with Camera', '4K drone for aerial photography', categories[7]),
-        ('Photo Booth Setup', 'Complete photo booth system', categories[7]),
+        ('Studio Lighting Kit', 'Professional studio lighting', categories[7], 40.00),
+        ('Drone with Camera', '4K drone for aerial photography', categories[7], 90.00),
+        ('Photo Booth Setup', 'Complete photo booth system', categories[7], 110.00),
     ]
     
     products = []
-    for name, description, category in products_data:
+    for name, description, category, daily_rate in products_data:
         product, created = Product.objects.get_or_create(
             name=name,
             defaults={
@@ -225,6 +225,7 @@ def create_sample_data():
                 'is_active': True,
                 'quantity_on_hand': 5,
                 'default_rental_unit': 'DAY',
+                'daily_rate': Decimal(str(daily_rate)),
             }
         )
         products.append(product)
@@ -350,6 +351,13 @@ def create_sample_data():
     
     # Create some quotes and orders
     for i, customer in enumerate(customers[:3]):
+        # Calculate totals based on actual products
+        selected_products = products[i*2:(i*2)+2] if len(products) >= (i*2)+2 else products[:2]
+        rental_days = 7
+        subtotal = sum([(product.daily_rate or Decimal('25.00')) * rental_days for product in selected_products])
+        tax_amount = subtotal * Decimal('0.18')  # 18% tax
+        total_amount = subtotal + tax_amount
+        
         # Create quote
         quote = RentalQuote.objects.create(
             customer=customer,
@@ -357,9 +365,9 @@ def create_sample_data():
             rental_start_date=timezone.now().date() + timedelta(days=7),
             rental_end_date=timezone.now().date() + timedelta(days=14),
             status='PENDING',
-            subtotal=Decimal('500.00'),
-            tax_amount=Decimal('90.00'),
-            total_amount=Decimal('590.00'),
+            subtotal=subtotal,
+            tax_amount=tax_amount,
+            total_amount=total_amount,
             notes='Sample quote for demonstration',
         )
         
@@ -368,24 +376,30 @@ def create_sample_data():
             customer=customer,
             quote=quote,
             order_number=f'ORD{timezone.now().year}{i+1:04d}',
-            rental_start_date=quote.rental_start_date,
-            rental_end_date=quote.rental_end_date,
+            rental_start=timezone.now() + timedelta(days=7),
+            rental_end=timezone.now() + timedelta(days=14),
             status='CONFIRMED',
             subtotal=quote.subtotal,
             tax_amount=quote.tax_amount,
             total_amount=quote.total_amount,
-            security_deposit=Decimal('200.00'),
+            deposit_amount=Decimal('200.00'),
+            created_by=staff_users[0],  # Assign first staff as creator
         )
         
         # Add rental items
         for j in range(2):
             if j < len(products):
+                product = products[j + i*2]
+                rental_days = 7  # 7 days rental
+                unit_price = product.daily_rate or Decimal('25.00')
+                line_total = unit_price * rental_days
+                
                 RentalItem.objects.create(
                     order=order,
-                    product=products[j + i*2],
+                    product=product,
                     quantity=1,
-                    unit_price=Decimal('25.00'),
-                    line_total=Decimal('175.00'),
+                    unit_price=unit_price,
+                    line_total=line_total,
                     start_datetime=timezone.now() + timedelta(days=7),
                     end_datetime=timezone.now() + timedelta(days=14),
                     rental_unit='DAY',

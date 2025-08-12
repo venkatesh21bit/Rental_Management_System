@@ -26,7 +26,7 @@ class ProductCategoryAdmin(admin.ModelAdmin):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     list_display = (
-        'sku', 'name', 'category', 'rentable', 'tracking', 
+        'sku', 'name', 'category', 'daily_rate', 'rentable', 'tracking', 
         'quantity_on_hand', 'available_quantity', 'is_active'
     )
     list_filter = (
@@ -43,7 +43,7 @@ class ProductAdmin(admin.ModelAdmin):
         ('Rental Configuration', {
             'fields': (
                 'rentable', 'tracking', 'default_rental_unit',
-                'min_rental_duration', 'max_rental_duration'
+                'min_rental_duration', 'max_rental_duration', 'daily_rate'
             )
         }),
         ('Stock Information', {

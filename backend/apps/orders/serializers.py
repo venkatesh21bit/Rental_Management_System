@@ -113,8 +113,9 @@ class RentalItemSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         """Create rental item with automatic line_total calculation"""
         instance = RentalItem(**validated_data)
-        # Calculate line_total if not provided
-        if not validated_data.get('line_total'):
+        # Only calculate line_total if not provided or is zero
+        line_total = validated_data.get('line_total', 0)
+        if not line_total or line_total == 0:
             instance.calculate_line_total()
         instance.save()
         return instance
@@ -211,6 +212,48 @@ class RentalOrderSerializer(serializers.ModelSerializer):
         order.subtotal = total_amount
         order.total_amount = total_amount + order.tax_amount - order.discount_amount
         order.save()
+        
+        # Send order confirmation email asynchronously
+        try:
+            from apps.notifications.tasks import send_order_confirmation_email
+            send_order_confirmation_email.delay(order.id)
+        except ImportError:
+            # Fallback to direct email sending if Celery is not available
+            from utils.email_service import email_service
+            
+            context = {
+                'order': {
+                    'id': str(order.id),
+                    'created_at': order.created_at.strftime('%Y-%m-%d %H:%M'),
+                    'start_date': order.rental_start.strftime('%Y-%m-%d'),
+                    'end_date': order.rental_end.strftime('%Y-%m-%d'),
+                    'total_amount': str(order.total_amount),
+                    'status': order.status,
+                    'items': [
+                        {
+                            'product_name': item.product.name,
+                            'quantity': item.quantity,
+                            'rate': str(item.unit_price),
+                            'subtotal': str(item.line_total)
+                        }
+                        for item in order.items.all()
+                    ]
+                },
+                'user': {
+                    'first_name': order.customer.first_name or 'Valued Customer',
+                    'last_name': order.customer.last_name or '',
+                    'email': order.customer.email
+                }
+            }
+            
+            email_service.send_notification_email(
+                to_email=order.customer.email,
+                subject=f"Order Confirmation - #{order.id}",
+                template_name='order_confirmation',
+                context=context,
+                user=order.customer,
+                notification_type='ORDER_CONFIRMATION'
+            )
         
         return order
     

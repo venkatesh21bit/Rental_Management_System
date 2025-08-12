@@ -245,15 +245,19 @@ class RentalItem(models.Model):
         return f"{self.product.name} x{self.quantity} - {self.order.order_number}"
 
     def save(self, *args, **kwargs):
-        """Auto-calculate line_total if not provided"""
-        if not self.line_total:
+        """Auto-calculate line_total if not provided or is zero"""
+        if not self.line_total or self.line_total == 0:
             self.calculate_line_total()
         super().save(*args, **kwargs)
 
     def calculate_line_total(self):
-        """Calculate line total based on unit price and quantity"""
-        if self.unit_price and self.quantity:
-            subtotal = self.unit_price * self.quantity
+        """Calculate line total based on unit price, quantity, and rental duration"""
+        if self.unit_price and self.quantity and self.start_datetime and self.end_datetime:
+            # Calculate rental duration in days
+            delta = self.end_datetime - self.start_datetime
+            rental_days = delta.days + (1 if delta.seconds > 0 else 0)
+            
+            subtotal = self.unit_price * self.quantity * rental_days
             self.line_total = subtotal - self.discount_amount
         else:
             self.line_total = 0
