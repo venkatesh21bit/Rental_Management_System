@@ -78,7 +78,7 @@ export function LoginForm({
         }
 
         if (role === "enduser") {
-          router.replace("/manufacturer");
+          router.replace("/end-user");
         } else if (role === "customer") {
           router.replace("/retailer");
         }
