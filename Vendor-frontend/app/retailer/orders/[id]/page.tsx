@@ -60,6 +60,7 @@ const OrderDetailsPage = () => {
   useEffect(() => {
     if (params.id) {
       fetchOrderDetails();
+      fetchPaymentProviders();
     }
   }, [params.id]);
 

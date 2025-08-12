@@ -21,10 +21,15 @@ router.register(r'webhooks', WebhookEventViewSet, basename='webhook-event')
 
 # Order payment endpoints
 order_payment_patterns = [
-    path('orders/<uuid:order_id>/create-payment/', create_order_payment, name='create-order-payment'),
-    path('payments/<uuid:payment_id>/complete/', complete_payment, name='complete-payment'),
-    path('providers/available/', payment_providers, name='available-providers'),
-    path('orders/<uuid:order_id>/payment-status/', order_payment_status, name='order-payment-status'),
+    path('order-payment/create/', create_order_payment, name='create-order-payment'),
+    path('order-payment/complete/', complete_payment, name='complete-payment'),
+    path('order-payment/providers/', payment_providers, name='order-payment-providers'),
+    path('order-payment/status/', order_payment_status, name='order-payment-status'),
+    # Legacy patterns for backward compatibility
+    path('orders/<uuid:order_id>/create-payment/', create_order_payment, name='create-order-payment-legacy'),
+    path('payments/<uuid:payment_id>/complete/', complete_payment, name='complete-payment-legacy'),
+    path('providers/available/', payment_providers, name='available-providers-legacy'),
+    path('orders/<uuid:order_id>/payment-status/', order_payment_status, name='order-payment-status-legacy'),
 ]
 
 # Industry-grade webhook endpoints with atomic transactions

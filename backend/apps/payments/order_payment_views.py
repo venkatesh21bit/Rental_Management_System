@@ -17,9 +17,19 @@ logger = logging.getLogger(__name__)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
-def create_order_payment(request, order_id):
+def create_order_payment(request, order_id=None):
     """Create a payment for an order"""
     try:
+        # Get order_id from URL parameter or request body
+        if not order_id:
+            order_id = request.data.get('order_id')
+        
+        if not order_id:
+            return Response({
+                'success': False,
+                'error': 'Order ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         # Get the order
         order = get_object_or_404(RentalOrder, id=order_id)
         
@@ -32,18 +42,24 @@ def create_order_payment(request, order_id):
         
         # Get payment data from request
         payment_method = request.data.get('payment_method', 'CREDIT_CARD')
+        provider_name = request.data.get('provider')
         provider_id = request.data.get('provider_id')
         
-        # Get payment provider (default to first active one if not specified)
+        # Get payment provider (by name or ID)
+        provider = None
         if provider_id:
             provider = get_object_or_404(PaymentProvider, id=provider_id, is_active=True)
-        else:
+        elif provider_name:
+            provider = PaymentProvider.objects.filter(name__iexact=provider_name, is_active=True).first()
+        
+        if not provider:
             provider = PaymentProvider.objects.filter(is_active=True).first()
-            if not provider:
-                return Response({
-                    'success': False,
-                    'error': 'No payment provider available'
-                }, status=status.HTTP_400_BAD_REQUEST)
+            
+        if not provider:
+            return Response({
+                'success': False,
+                'error': 'No payment provider available'
+            }, status=status.HTTP_400_BAD_REQUEST)
         
         # Create or get invoice for the order
         invoice, created = Invoice.objects.get_or_create(
@@ -279,9 +295,19 @@ def payment_providers(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def order_payment_status(request, order_id):
+def order_payment_status(request, order_id=None):
     """Get payment status for an order"""
     try:
+        # Get order_id from URL parameter or query parameter
+        if not order_id:
+            order_id = request.GET.get('order_id')
+        
+        if not order_id:
+            return Response({
+                'success': False,
+                'error': 'Order ID is required'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
         order = get_object_or_404(RentalOrder, id=order_id)
         
         # Check if user can view this order
