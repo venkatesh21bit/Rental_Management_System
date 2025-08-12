@@ -2,6 +2,135 @@
 
 A comprehensive Django-based rental management system with complete order processing, delivery tracking, invoicing, payments, notifications, reporting, and API management capabilities.
 
+## Architecture Overview
+
+### System Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    RENTAL MANAGEMENT SYSTEM                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   Vendor App    │    │  Customer App   │    │   Admin Panel   │
+│   (Next.js)     │    │   (Next.js)     │    │   (Django)      │
+│                 │    │                 │    │                 │
+│ • Product Mgmt  │    │ • Browse Items  │    │ • System Admin  │
+│ • Order Mgmt    │    │ • Place Orders  │    │ • User Mgmt     │
+│ • Profile       │    │ • Track Orders  │    │ • Analytics     │
+│ • Analytics     │    │ • Payments      │    │ • Reports       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   API Gateway   │
+                    │  (Django REST)  │
+                    │                 │
+                    │ • Authentication│
+                    │ • Rate Limiting │
+                    │ • CORS Handling │
+                    │ • Request/Resp  │
+                    └─────────────────┘
+                                 │
+         ┌───────────────────────┼───────────────────────┐
+         │                       │                       │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  Auth Service   │    │  Business Logic │    │  External APIs  │
+│                 │    │     Layer       │    │                 │
+│ • JWT Tokens    │    │                 │    │ • Payment Gate  │
+│ • User Auth     │    │ • Product Mgmt  │    │ • Email Service │
+│ • Permissions   │    │ • Order Proc.   │    │ • File Storage  │
+│ • Session Mgmt  │    │ • Inventory     │    │ • Notifications │
+└─────────────────┘    │ • Reporting     │    └─────────────────┘
+                       │ • Analytics     │
+                       └─────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │  Data Layer     │
+                    │                 │
+                    │ • PostgreSQL    │
+                    │ • Redis Cache   │
+                    │ • File Storage  │
+                    │ • Backup System │
+                    └─────────────────┘
+```
+
+### Data Flow Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                         DATA FLOW OVERVIEW                          │
+└─────────────────────────────────────────────────────────────────────┘
+
+1. VENDOR PRODUCT MANAGEMENT FLOW
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │ Vendor  │───▶│   API   │───▶│Product  │───▶│Database │
+   │ Portal  │    │Gateway  │    │Service  │    │Storage  │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘
+        │              │              │              │
+        │              │              ▼              │
+        │              │         ┌─────────┐         │
+        │              │         │Image    │         │
+        │              │         │Upload   │         │
+        │              │         └─────────┘         │
+        │              │              │              │
+        │              │              ▼              │
+        │              │         ┌─────────┐         │
+        │              │         │Search   │         │
+        │              │         │Index    │         │
+        │              │         └─────────┘         │
+
+2. CUSTOMER ORDER FLOW
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │Customer │───▶│Browse   │───▶│Product  │───▶│Order    │
+   │Portal   │    │Products │    │Details  │    │Creation │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘
+        │              │              │              │
+        │              ▼              ▼              ▼
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │Cart     │───▶│Payment  │───▶│Order    │───▶│Email    │
+   │Mgmt     │    │Process  │    │Confirm  │    │Notify   │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘
+        │              │              │              │
+        │              │              ▼              │
+        │              │         ┌─────────┐         │
+        │              │         │Inventory│         │
+        │              │         │Update   │         │
+        │              │         └─────────┘         │
+
+3. ORDER PROCESSING FLOW
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │Order    │───▶│Vendor   │───▶│Status   │───▶│Customer │
+   │Created  │    │Notify   │    │Update   │    │Notify   │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘
+        │              │              │              │
+        │              ▼              ▼              │
+   ┌─────────┐    ┌─────────┐    ┌─────────┐         │
+   │Payment  │───▶│Inventory│───▶│Delivery │         │
+   │Process  │    │Reserve  │    │Schedule │         │
+   └─────────┘    └─────────┘    └─────────┘         │
+        │              │              │              │
+        │              │              ▼              │
+        │              │         ┌─────────┐         │
+        │              │         │Track    │         │
+        │              │         │Updates  │         │
+        │              │         └─────────┘         │
+
+4. ANALYTICS & REPORTING FLOW
+   ┌─────────┐    ┌─────────┐    ┌─────────┐    ┌─────────┐
+   │Order    │───▶│Data     │───▶│Analytics│───▶│Dashboard│
+   │Events   │    │Collect  │    │Engine   │    │Display  │
+   └─────────┘    └─────────┘    └─────────┘    └─────────┘
+        │              │              │              │
+        │              ▼              ▼              │
+   ┌─────────┐    ┌─────────┐    ┌─────────┐         │
+   │User     │───▶│Data     │───▶│Reports  │         │
+   │Activity │    │Warehouse│    │Generate │         │
+   └─────────┘    └─────────┘    └─────────┘         │
+```
+
 ## Features
 
 - Django REST Framework for API development
@@ -10,6 +139,84 @@ A comprehensive Django-based rental management system with complete order proces
 - CORS enabled for frontend integration
 - Railway deployment ready
 - Docker support
+
+## API Architecture
+
+### Microservices Component Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      API MICROSERVICES LAYER                        │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  AUTH SERVICE   │    │ CATALOG SERVICE │    │  ORDER SERVICE  │
+│                 │    │                 │    │                 │
+│ /api/auth/      │    │ /api/catalog/   │    │ /api/orders/    │
+│ • signup/       │    │ • products/     │    │ • orders/       │
+│ • login/        │    │ • categories/   │    │ • payments/     │
+│ • refresh/      │    │ • search/       │    │ • tracking/     │
+│ • logout/       │    │ • images/       │    │ • invoices/     │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│  USER SERVICE   │    │NOTIFICATION SVC │    │ ANALYTICS SVC   │
+│                 │    │                 │    │                 │
+│ /api/users/     │    │ /api/notify/    │    │ /api/analytics/ │
+│ • profile/      │    │ • email/        │    │ • reports/      │
+│ • me/           │    │ • sms/          │    │ • dashboard/    │
+│ • vendors/      │    │ • push/         │    │ • metrics/      │
+│ • customers/    │    │ • templates/    │    │ • export/       │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+```
+
+### Database Entity Relationship Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    DATABASE SCHEMA OVERVIEW                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│    USERS    │    │  PROFILES   │    │ CATEGORIES  │
+│             │    │             │    │             │
+│ • id (PK)   │───▶│ • user_id   │    │ • id (PK)   │
+│ • username  │    │ • name      │    │ • name      │
+│ • email     │    │ • phone     │    │ • desc      │
+│ • password  │    │ • address   │    │ • image     │
+│ • role      │    │ • avatar    │    │ • active    │
+│ • active    │    │ • verified  │    └─────────────┘
+│ • created   │    └─────────────┘           │
+└─────────────┘                             │
+       │                                    │
+       │                                    ▼
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│   ORDERS    │    │ ORDER_ITEMS │    │  PRODUCTS   │
+│             │    │             │    │             │
+│ • id (PK)   │    │ • id (PK)   │    │ • id (PK)   │
+│ • customer  │───▶│ • order_id  │◄───│ • vendor_id │
+│ • vendor    │    │ • product   │    │ • category  │
+│ • status    │    │ • quantity  │    │ • name      │
+│ • total     │    │ • price     │    │ • desc      │
+│ • payment   │    │ • start_dt  │    │ • price     │
+│ • created   │    │ • end_date  │    │ • stock     │
+└─────────────┘    └─────────────┘    │ • images    │
+       │                             │ • active    │
+       │                             └─────────────┘
+       ▼                                    │
+┌─────────────┐    ┌─────────────┐         │
+│  PAYMENTS   │    │   REVIEWS   │         │
+│             │    │             │         │
+│ • id (PK)   │    │ • id (PK)   │         │
+│ • order_id  │    │ • product   │◄────────┘
+│ • amount    │    │ • customer  │
+│ • method    │    │ • rating    │
+│ • status    │    │ • comment   │
+│ • gateway   │    │ • created   │
+│ • created   │    └─────────────┘
+└─────────────┘
+```
 
 ## Quick Start
 
@@ -72,6 +279,91 @@ A comprehensive Django-based rental management system with complete order proces
   - `GET /api/examples/` - List examples
   - `POST /api/examples/` - Create example
   - `GET /api/examples/{id}/` - Get example details
+
+### Deployment Architecture
+
+#### Production Infrastructure Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                      PRODUCTION DEPLOYMENT                          │
+└─────────────────────────────────────────────────────────────────────┘
+
+                              INTERNET
+                                 │
+                    ┌─────────────────┐
+                    │   CLOUDFLARE    │
+                    │   (CDN/WAF)     │
+                    │                 │
+                    │ • SSL/TLS       │
+                    │ • DDoS Protect  │
+                    │ • Caching       │
+                    │ • Rate Limiting │
+                    └─────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │   LOAD BALANCER │
+                    │   (Railway)     │
+                    │                 │
+                    │ • Health Checks │
+                    │ • Auto Scaling  │
+                    │ • SSL Termination│
+                    └─────────────────┘
+                                 │
+         ┌───────────────────────┼───────────────────────┐
+         │                       │                       │
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│ FRONTEND APPS   │    │  BACKEND API    │    │ WORKER SERVICES │
+│   (Vercel)      │    │   (Railway)     │    │   (Railway)     │
+│                 │    │                 │    │                 │
+│ • Vendor Portal │    │ • Django API    │    │ • Celery Worker │
+│ • Customer App  │    │ • REST APIs     │    │ • Email Queue   │
+│ • Static Assets │    │ • Admin Panel   │    │ • File Processor│
+│ • CDN Optimized │    │ • Media Files   │    │ • Background Jobs│
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+         │                       │                       │
+         │                       │                       │
+         └───────────────────────┼───────────────────────┘
+                                 │
+                    ┌─────────────────┐
+                    │  DATA LAYER     │
+                    │                 │
+                    │ • PostgreSQL    │
+                    │ • Redis Cache   │
+                    │ • File Storage  │
+                    │ • Backups       │
+                    └─────────────────┘
+```
+
+#### Development vs Production Flow
+
+```
+┌─────────────────────────────────────────────────────────────────────┐
+│                    ENVIRONMENT FLOW DIAGRAM                         │
+└─────────────────────────────────────────────────────────────────────┘
+
+DEVELOPMENT ENVIRONMENT:
+┌─────────────┐    ┌─────────────┐    ┌─────────────┐
+│ Local Dev   │───▶│   Git Repo  │───▶│  Railway    │
+│ (localhost) │    │  (GitHub)   │    │ (Staging)   │
+│             │    │             │    │             │
+│ • Hot Reload│    │ • Version   │    │ • Auto      │
+│ • Debug Mode│    │   Control   │    │   Deploy    │
+│ • SQLite DB │    │ • PR Review │    │ • Test Data │
+└─────────────┘    └─────────────┘    └─────────────┘
+                            │                 │
+                            │                 │
+                            ▼                 ▼
+                   ┌─────────────┐    ┌─────────────┐
+                   │  CI/CD      │    │ Production  │
+                   │ (GitHub     │───▶│ (Railway)   │
+                   │  Actions)   │    │             │
+                   │             │    │ • Live Data │
+                   │ • Tests     │    │ • SSL Cert  │
+                   │ • Build     │    │ • Monitoring│
+                   │ • Deploy    │    │ • Backups   │
+                   └─────────────┘    └─────────────┘
+```
 
 ### Admin Access
 
