@@ -28,9 +28,11 @@ urlpatterns = [
     
     # Authentication and User Management
     path('api/', include('apps.accounts.urls')),
+    path('api/retailer/', include('apps.accounts.retailer_urls')),
     
     # Core Business APIs
     path('api/catalog/', include('apps.catalog.urls')),
+    path('api/products/', include('apps.catalog.urls')),  # Alias for products
     path('api/pricing/', include('apps.pricing.urls')),
     path('api/orders/', include('apps.orders.urls')),
     
