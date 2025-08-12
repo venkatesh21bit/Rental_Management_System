@@ -107,11 +107,27 @@ const OrderDetailsPage = () => {
     try {
       const response = await fetchWithAuth(`${API_URL}/payments/order-payment/providers/`);
       if (response.ok) {
-        const providers = await response.json();
-        setPaymentProviders(providers);
+        const result = await response.json();
+        // Handle different response formats
+        if (Array.isArray(result)) {
+          setPaymentProviders(result);
+        } else if (result.data && Array.isArray(result.data)) {
+          setPaymentProviders(result.data);
+        } else if (result.providers && Array.isArray(result.providers)) {
+          setPaymentProviders(result.providers);
+        } else if (result.results && Array.isArray(result.results)) {
+          setPaymentProviders(result.results);
+        } else {
+          console.error('Invalid payment providers response format:', result);
+          setPaymentProviders([]);
+        }
+      } else {
+        console.error('Failed to fetch payment providers:', response.status);
+        setPaymentProviders([]);
       }
     } catch (error) {
       console.error('Error fetching payment providers:', error);
+      setPaymentProviders([]);
     }
   };
 
@@ -520,24 +536,33 @@ const OrderDetailsPage = () => {
               <div>
                 <p className="text-neutral-400 text-sm mb-3">Choose Payment Provider</p>
                 <div className="space-y-2">
-                  {paymentProviders.map((provider) => (
-                    <label key={provider.id} className="flex items-center space-x-3 cursor-pointer">
-                      <input
-                        type="radio"
-                        name="payment-provider"
-                        value={provider.id}
-                        checked={selectedProvider === provider.id}
-                        onChange={(e) => setSelectedProvider(e.target.value)}
-                        className="text-blue-600 focus:ring-blue-500"
-                      />
-                      <div className="flex items-center space-x-2">
-                        <span className="font-medium">{provider.name}</span>
-                        {provider.is_active && (
-                          <span className="text-xs bg-green-600 text-green-100 px-2 py-1 rounded">Active</span>
-                        )}
-                      </div>
-                    </label>
-                  ))}
+                  {Array.isArray(paymentProviders) && paymentProviders.length > 0 ? (
+                    paymentProviders.map((provider) => (
+                      <label key={provider.id} className="flex items-center space-x-3 cursor-pointer">
+                        <input
+                          type="radio"
+                          name="payment-provider"
+                          value={provider.id}
+                          checked={selectedProvider === provider.id}
+                          onChange={(e) => setSelectedProvider(e.target.value)}
+                          className="text-blue-600 focus:ring-blue-500"
+                        />
+                        <div className="flex items-center space-x-2">
+                          <span className="font-medium">{provider.name}</span>
+                          {provider.is_active && (
+                            <span className="text-xs bg-green-600 text-green-100 px-2 py-1 rounded">Active</span>
+                          )}
+                        </div>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="text-neutral-400 text-sm">
+                      {paymentProviders === null || paymentProviders === undefined ? 
+                        'Loading payment providers...' : 
+                        'No payment providers available'
+                      }
+                    </div>
+                  )}
                 </div>
               </div>
               
@@ -550,10 +575,12 @@ const OrderDetailsPage = () => {
                 </button>
                 <button
                   onClick={createOrderPayment}
-                  disabled={!selectedProvider || paymentLoading}
+                  disabled={!selectedProvider || paymentLoading || !Array.isArray(paymentProviders) || paymentProviders.length === 0}
                   className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {paymentLoading ? 'Processing...' : 'Continue to Payment'}
+                  {paymentLoading ? 'Processing...' : 
+                   !Array.isArray(paymentProviders) || paymentProviders.length === 0 ? 'No Providers Available' :
+                   'Continue to Payment'}
                 </button>
               </div>
             </div>

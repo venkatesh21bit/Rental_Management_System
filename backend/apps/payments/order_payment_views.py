@@ -277,7 +277,7 @@ def payment_providers(request):
     """Get available payment providers"""
     try:
         providers = PaymentProvider.objects.filter(is_active=True).values(
-            'id', 'name', 'provider_type', 'description', 'logo_url'
+            'id', 'name', 'provider_type', 'description', 'logo_url', 'is_active'
         )
         
         return Response({
